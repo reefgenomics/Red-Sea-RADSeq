@@ -8,11 +8,11 @@ import matplotlib.gridspec as gridspec
 
 class Buitrago:
     def __init__(self):
-        with open('/Users/benjaminhume/Documents/projects/20210113_buitrago/pver.14reef.277ind.ordered.strata.txt',
+        with open('/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/pver.14reef.277ind.ordered.strata.txt',
                   'r') as f:
             self.pver_sample_list = [line.split('\t')[0] for line in list(f)[1:]]
 
-        with open('/Users/benjaminhume/Documents/projects/20210113_buitrago/spis.18reef.368ind.ordered.strata.txt',
+        with open('/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/spis.18reef.368ind.ordered.strata.txt',
                   'r') as f:
             self.spis_sample_list = [line.split('\t')[0] for line in list(f)[1:]]
         self.spis_sample_list.remove('SWAJ-R1-43')
@@ -29,13 +29,22 @@ class Buitrago:
         # and reef.
         # There will be 6 axes for plotting and 3 legend axes
         # 2 sets of 3 one for each
-        if self.legend:
-            self.bar_ax = plt.subplot(gs[:, :1])
-        self.seq_color_dict = SPBars(seq_count_table_path='/Users/benjaminhume/Documents/projects/20210113_buitrago/sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt',
+        self.pver_genera_ax = plt.subplot(gs[:4, :1])
+        self.pver_seq_ax = plt.subplot(gs[:4, 1:2])
+        self.pver_profile_ax = plt.subplot(gs[:4, 2:3])
+        self.spis_genera_ax = plt.subplot(gs[:4, 3:4])
+        self.spis_seq_ax = plt.subplot(gs[:4, 4:5])
+        self.spis_profile_ax = plt.subplot(gs[:4, 5:6])
+        self.genera_leg_ax = plt.subplot(gs[4:5, :2])
+        self.seq_leg_ax = plt.subplot(gs[4:5, 2:4])
+        self.profile_leg_ax = plt.subplot(gs[4:5, 4:6])
+
+
+        spb = SPBars(seq_count_table_path='/Users/benjaminhume/Documents/projects/20210113_buitrago/sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt',
             profile_count_table_path='/Users/benjaminhume/Documents/projects/20210113_buitrago/sp_output/its2_type_profiles/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.txt',
-            plot_type='seq_only', orientation='v', legend=False, relative_abundnce=True,
-            bar_ax=self.ax_arr[0]
-                                     )
+            plot_type='seq_and_profile', orientation='v', legend=False, relative_abundnce=True)
+        self.seq_color_dict = spb.seq_color_dict
+        self.profile_color_dict = spb.profile_color_dict
         # create an instance of SPBars just to generate a seq and profile dict for the whole dataset
         # then use this dictionary for plotting the actual plots.
 
