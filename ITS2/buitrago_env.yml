@@ -1,0 +1,10 @@
+name: buitrago_env
+channels:
+  - conda-forge
+  - bioconda
+  - didillysquat
+dependencies:
+  - python=3
+  - matplotlib
+  - pandas
+  - sputils
