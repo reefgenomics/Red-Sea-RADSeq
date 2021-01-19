@@ -37,6 +37,13 @@ class Buitrago:
         self.profile_count_table_path = os.path.join(self.root_dir,
                                                      'sp_output/its2_type_profiles/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.txt')
 
+        # Color dictionaries
+        self.region_color_dict = {
+            'MAQ': '#222f4f', 'WAJ': '#10788f', 'YAN': "#bdd7c2",
+            'KAU': '#e9d88a', 'DOG': '#f0946d', 'FAR': '#bc402a'
+        }
+        self.species_color_dict = {'P': '#BEBEBE', 'S': '#464646'}
+
     def _mm2inch(self, *tupl):
         inch = 25.4
         if isinstance(tupl[0], tuple):
@@ -53,13 +60,15 @@ class BuitragoHier(Buitrago):
 
         # setup fig
         # 6 rows for the dendro and 1 for the coloring by species
-        gs = gridspec.GridSpec(nrows=8, ncols=1)
+        gs = gridspec.GridSpec(nrows=17, ncols=1)
 
         self.fig = plt.figure(figsize=(self._mm2inch(183, 80)))
-        self.dendro_ax = plt.subplot(gs[:4, :])
-        self.species_ax = plt.subplot(gs[4:5, :])
-        self.region_ax = plt.subplot(gs[5:6, :])
-        self.seq_bars_ax = plt.subplot(gs[6:8, :])
+        self.dendro_ax = plt.subplot(gs[:8, :])
+        self.seq_bars_ax = plt.subplot(gs[8:12, :])
+        self.species_ax = plt.subplot(gs[12:14, :])
+        self.region_ax = plt.subplot(gs[14:16, :])
+        self.region_ax_legend = plt.subplot(gs[16:17, :])
+
 
         dist_path = 'sp_output/between_sample_distances/A/20201207T095144_braycurtis_sample_distances_A_sqrt.dist'
 
@@ -70,32 +79,53 @@ class BuitragoHier(Buitrago):
 
         # Run SPHier through blank to get the list of samples we have in the A matrix
         # THen find the interset of samples listed in the self.pver and self.spis dfs.
-        sph = SPHierarchical(dist_output_path=dist_path, no_plotting=True)
-        symbiodinium_names = sph.obj_name_to_obj_uid_dict.keys()
+        self.sph = SPHierarchical(dist_output_path=dist_path, no_plotting=True)
+        symbiodinium_names = self.sph.obj_name_to_obj_uid_dict.keys()
         symbiodinium_host_names = set(symbiodinium_names).intersection(set(self.all_samples_df.index))
 
-        sph = SPHierarchical(
+        self.sph = SPHierarchical(
             dist_output_path=dist_path, ax=self.dendro_ax,
             sample_names_included=symbiodinium_host_names)
-        sph.plot()
+        self.sph.plot()
         self.dendro_ax.collections[0].set_linewidth(0.5)
-        self.sample_uid_to_sample_name = sph.obj_uid_to_obj_name_dict
-        self.sample_name_to_sample_uid = sph.obj_name_to_obj_uid_dict
+        self.sample_uid_to_sample_name = self.sph.obj_uid_to_obj_name_dict
+        self.sample_name_to_sample_uid = self.sph.obj_name_to_obj_uid_dict
 
-        self._plot_species_ax(sph)
+        # We will hardcode the x coordinates as they seem to be standard for the dendrogram plots
+        self.x_coords = range(5, (len(self.sph.dendrogram['ivl']) * 10) + 5, 10)
+        self.sample_name_to_x_coord_dict = {
+            sample_name: x_coord for
+            sample_name, x_coord in
+            zip(self.sph.dendrogram['ivl'], self.x_coords)
+        }
 
-        self._plot_region_ax(sph)
+        self._plot_meta_info_ax(ax=self.species_ax, meta='species')
+        self._plot_meta_info_ax(ax=self.region_ax, meta='region')
 
-        self.plot_bars(sph)
+        self._plot_region_leg_ax()
+
+        self.plot_bars()
 
         plt.savefig('dendro_bars.svg')
         plt.savefig('dendro_bars.png', dpi=1200)
         foo = 'bar'
 
-    def plot_bars(self, sph):
+    def _plot_region_leg_ax(self):
+        self.region_ax_legend.set_xlim(0, 1)
+        self.region_ax_legend.set_ylim(0, 1)
+        r = []
+        for i, region in enumerate(['MAQ', 'WAJ', 'YAN', 'KAU', 'DOG', 'FAR']):
+            r.append(Rectangle((i * 0.16, 0), 0.08, 1, color=self.region_color_dict[region]))
+            self.region_ax_legend.text(x=i * 0.16 + 0.09, y=0.5, s=region, va='center', fontsize='xx-small')
+        patches_collection = PatchCollection(r, match_original=True)
+        self.region_ax_legend.add_collection(patches_collection)
+        self.region_ax_legend.set_xticks([])
+        self.region_ax_legend.set_yticks([])
+
+    def plot_bars(self):
         # We want to plot the bars in the order of the hierarchical
         # we will use the sph.dendrogram['ivl'] uids converted to names
-        dendrogram_sample_name_order = [self.sample_uid_to_sample_name[_] for _ in sph.dendrogram['ivl']]
+        dendrogram_sample_name_order = [self.sample_uid_to_sample_name[_] for _ in self.sph.dendrogram['ivl']]
         # Now plot the bars
         spb = SPBars(
             seq_count_table_path=self.seq_count_table_path,
@@ -106,90 +136,43 @@ class BuitragoHier(Buitrago):
         spb.plot()
         self.seq_bars_ax.set_xticks([])
         self.seq_bars_ax.set_yticks([])
-        self.seq_bars_ax.set_ylabel('sequences', rotation='vertical', fontsize='x-small')
+        self.seq_bars_ax.set_ylabel('sequences', rotation='vertical', fontsize='xx-small')
 
-
-    def _plot_region_ax(self, sph):
-        # plot the species colors on the bottom axis
-        # Rectangles should be centered around the x coordinate of the leaves. Width will be
-        # the distance between the x coordinates.
-        x_coords = range(5, (len(sph.dendrogram['ivl']) * 10) + 5, 10)
-        sample_name_to_x_coord_dict = {
-            sample_name: x_coord for
-            sample_name, x_coord in
-            zip(sph.dendrogram['ivl'], x_coords)
-        }
-        c_dict = {
-            'MAQ': '#222f4f', 'WAJ': '#10788f', 'YAN': "#bdd7c2",
-            'KAU': '#e9d88a', 'DOG':'#f0946d', 'FAR':'#bc402a'
-        }
+    def _plot_meta_info_ax(self, ax, meta):
+        """
+        Plot up a set of meta info as categorical colors.
+        :param ax: The axis on which to plot the meta info
+        :param meta: Either 'region' or 'species'. The meta info being plotted
+        :return: None
+        """
         width = 10
-        color_list = []
         rectangles = []
-        for sample_uid, x_coord in sample_name_to_x_coord_dict.items():
+        for sample_uid, x_coord in self.sample_name_to_x_coord_dict.items():
             if self.sample_uid_to_sample_name[sample_uid][0] in ['S', 'P']:
-                c = c_dict[self.all_samples_df.at[self.sample_uid_to_sample_name[sample_uid], 'REGION']]
-                rectangles.append(Rectangle(
-                    (x_coord - width / 2, 0),
-                    width,
-                    1, color=c))
-                color_list.append(c)
+                if meta == 'region':
+                    c = self.region_color_dict[self.all_samples_df.at[self.sample_uid_to_sample_name[sample_uid], 'REGION']]
+                    rectangles.append(Rectangle(
+                        (x_coord - width / 2, 0),
+                        width,
+                        1, color=c))
+                elif meta == 'species':
+                    rectangles.append(Rectangle(
+                        (x_coord - width / 2, 0),
+                        width,
+                        1, color=self.species_color_dict[self.sample_uid_to_sample_name[sample_uid][0]]))
             else:
                 # negative sample
                 rectangles.append(Rectangle(
                     (x_coord - width / 2, 0),
                     width,
                     1, color='black'))
-                color_list.append('black')
-        # patches_collection = PatchCollection(self.bar_patches, match_original=True)
-        listed_color_map = ListedColormap(color_list)
-        patches_collection = PatchCollection(rectangles, cmap=listed_color_map)
-        patches_collection.set_array(np.arange(len(rectangles)))
-        self.region_ax.add_collection(patches_collection)
-        self.region_ax.set_xlim((x_coords[0] - width, x_coords[-1] + width))
-        # Remove the axis
-        self.region_ax.set_xticks([])
-        self.region_ax.set_yticks([])
-        self.region_ax.set_ylabel('region', rotation='vertical', fontsize='x-small')
-
-    def _plot_species_ax(self, sph):
-        # plot the species colors on the bottom axis
-        # Rectangles should be centered around the x coordinate of the leaves. Width will be
-        # the distance between the x coordinates.
-        x_coords = range(5, (len(sph.dendrogram['ivl']) * 10) + 5, 10)
-        sample_name_to_x_coord_dict = {
-            sample_name: x_coord for
-            sample_name, x_coord in
-            zip(sph.dendrogram['ivl'], x_coords)
-        }
-        c_dict = {'P': 'brown', 'S': 'blue'}
-        width = 10
-        color_list = []
-        rectangles = []
-        for sample_uid, x_coord in sample_name_to_x_coord_dict.items():
-            if self.sample_uid_to_sample_name[sample_uid][0] in ['S', 'P']:
-                rectangles.append(Rectangle(
-                    (x_coord - width / 2, 0),
-                    width,
-                    1, color=c_dict[self.sample_uid_to_sample_name[sample_uid][0]]))
-                color_list.append(c_dict[self.sample_uid_to_sample_name[sample_uid][0]])
-            else:
-                # negative sample
-                rectangles.append(Rectangle(
-                    (x_coord - width / 2, 0),
-                    width,
-                    1, color='black'))
-                color_list.append('black')
-        # patches_collection = PatchCollection(self.bar_patches, match_original=True)
-        listed_color_map = ListedColormap(color_list)
-        patches_collection = PatchCollection(rectangles, cmap=listed_color_map)
-        patches_collection.set_array(np.arange(len(rectangles)))
-        self.species_ax.add_collection(patches_collection)
-        self.species_ax.set_xlim((x_coords[0] - width, x_coords[-1] + width))
-        # Remove the axis
-        self.species_ax.set_xticks([])
-        self.species_ax.set_yticks([])
-        self.species_ax.set_ylabel('species', rotation='vertical', fontsize='x-small')
+        patches_collection = PatchCollection(rectangles, match_original=True)
+        ax.add_collection(patches_collection)
+        ax.set_xlim((self.x_coords[0] - width, self.x_coords[-1] + width))
+        # Remove the axis ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_ylabel(meta, rotation='vertical', fontsize='xx-small')
 
 
 class BuitragoBars(Buitrago):
