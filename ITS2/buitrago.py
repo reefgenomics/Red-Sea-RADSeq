@@ -10,12 +10,13 @@ import pandas as pd
 import os
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
+from itertools import chain
 from matplotlib.colors import ListedColormap
 import numpy as np
 
 class Buitrago:
     """A base class that will give access to the basic meta info dfs"""
-    def __init__(self):
+    def __init__(self, dist_type):
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.pver_df = pd.read_csv(
             filepath_or_buffer=os.path.join(self.root_dir, 'pver.14reef.277ind.ordered.strata.txt'),
@@ -38,11 +39,32 @@ class Buitrago:
                                                      'sp_output/its2_type_profiles/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.txt')
 
         # Color dictionaries
+        self.regions = ['MAQ', 'WAJ', 'YAN', 'KAU', 'DOG', 'FAR']
         self.region_color_dict = {
             'MAQ': '#222f4f', 'WAJ': '#10788f', 'YAN': "#bdd7c2",
             'KAU': '#e9d88a', 'DOG': '#f0946d', 'FAR': '#bc402a'
         }
         self.species_color_dict = {'P': '#BEBEBE', 'S': '#464646'}
+        self.reefs = ['R1', 'R2', 'R3', 'R4']
+        self.reef_marker_shape_dict = {'R1': 'o', 'R2': '^', 'R3': 's', 'R4': '+'}
+
+        # Determine the samples for plotting that contain Symbiodinium
+        # Run SPHier through blank to get the list of samples we have in the A matrix
+        # THen find the interset of samples listed in the self.pver and self.spis dfs.
+        if dist_type == 'bc':
+            self.symbiodinium_dist_path = 'sp_output/between_sample_distances/A/20201207T095144_braycurtis_sample_distances_A_sqrt.dist'
+        elif dist_type == 'uf':
+            self.symbiodinium_dist_path = 'sp_output/between_sample_distances/A/20201207T095144_unifrac_sample_distances_A_sqrt.dist'
+
+        self.sph = SPHierarchical(dist_output_path=self.symbiodinium_dist_path, no_plotting=True)
+        self.symbiodinium_names = self.sph.obj_name_to_obj_uid_dict.keys()
+        self.symbiodinium_host_names = set(self.symbiodinium_names).intersection(set(self.all_samples_df.index))
+        self.symbiodinium_sample_uid_to_sample_name_dict = {
+            k: v for k, v in self.sph.obj_name_to_obj_uid_dict.items() if k in self.symbiodinium_host_names
+        }
+        self.symbiodinium_sample_uid_to_sample_name_dict = {
+            v: k for k, v in self.symbiodinium_sample_uid_to_sample_name_dict.items()
+        }
 
     def _mm2inch(self, *tupl):
         inch = 25.4
@@ -51,12 +73,119 @@ class Buitrago:
         else:
             return tuple(i / inch for i in tupl)
 
+class BuitragoOrdinations(Buitrago):
+    """Plot PCoA ordinations"""
+    # We have the list of Symbiodinium samples that also have related host sample data
+    # read in the pcoA coords and keep only the samples that are in
+    def __init__(self, dist_type='bc'):
+        super().__init__(dist_type=dist_type)
+        if dist_type == 'bc':
+            self.pcoa_df = pd.read_csv(
+                'sp_output/between_sample_distances/A/20201207T095144_braycurtis_samples_PCoA_coords_A_sqrt.csv')
+        else:
+            self.pcoa_df = pd.read_csv(
+                'sp_output/between_sample_distances/A/20201207T095144_unifrac_sample_PCoA_coords_A_sqrt.csv')
+        self.pcoa_df.set_index('sample', inplace=True)
+        # Plot species wise
+        # four components per species
+        self.fig, self.ax_arr = plt.subplots(nrows=4, ncols=2, figsize=self._mm2inch(200, 300))
+        self.ax_gen = chain.from_iterable(zip(*self.ax_arr))
+
+
+        # Then Plot up species by ordination
+        for species, species_df in zip(['Pocillopra', 'Stylophora'],[self.pver_df, self.spis_df]):
+            for pc in ['PC2', 'PC3', 'PC4', 'PC5']:
+                ax = next(self.ax_gen)
+                for region in self.region_color_dict.keys():
+                    for reef in self.reef_marker_shape_dict.keys():
+
+                        #Get the samples that are of the given region, reef and in the symbiodinium host samples
+                        plot_df = species_df[
+                            (species_df['REGION'] == region) &
+                            (species_df['REEF'].str.contains(reef))
+                        ]
+                        sym_host_plot = [_ for _ in plot_df.index if _ in self.symbiodinium_host_names]
+                        plot_df = self.pcoa_df.loc[sym_host_plot, :]
+                        edgecolors = None
+                        if reef == 'R4':
+                            scatter = ax.scatter(
+                                x=plot_df['PC1'], y=plot_df[pc],
+                                c=self.region_color_dict[region],
+                                marker=self.reef_marker_shape_dict[reef], s=10, alpha=0.8
+                            )
+                        else:
+                            scatter = ax.scatter(
+                                x=plot_df['PC1'], y=plot_df[pc],
+                                c=self.region_color_dict[region],
+                                marker=self.reef_marker_shape_dict[reef], s=10, alpha=0.8,
+                                edgecolors=edgecolors, linewidths=0
+                            )
+                        foo = 'bar'
+                if pc == 'PC2':
+                    import matplotlib.lines as mlines
+                    handles = []
+                    for region in self.regions:
+                        # The region markers
+                        handles.append(
+                            mlines.Line2D(
+                                [], [], color=self.region_color_dict[region],
+                                marker='o', markersize=2, label=region, linewidth=0
+                            )
+                        )
+                    for reef in self.reefs:
+                        # The reef markers
+                        handles.append(
+                            mlines.Line2D(
+                                [], [], color='black',
+                                marker=self.reef_marker_shape_dict[reef],
+                                markersize=2, label=reef, linewidth=0
+                            )
+                        )
+                    ax.legend(handles=handles, loc='upper left', fontsize='xx-small')
+                    ax.set_title(species, fontsize='x-small')
+                ax.set_ylabel(f'{pc} {self.pcoa_df.at["proportion_explained", pc]:.2f}')
+                ax.set_xlabel(f'PC1 {self.pcoa_df.at["proportion_explained", "PC1"]:.2f}')
+                self._set_lims(ax)
+        foo = 'bar'
+        plt.tight_layout()
+        print('saving .svg')
+        plt.savefig(f'{dist_type}_ITS2_ordinations.svg')
+        print('saving .png')
+        plt.savefig(f'{dist_type}_ITS2_ordinations.png', dpi=1200)
+        foo = 'bar'
+
+    def _set_lims(self, ax):
+        # Get the longest side and then set the small side to be the same length
+        x_len = ax.get_xlim()[1] - ax.get_xlim()[0]
+        y_len = ax.get_ylim()[1] - ax.get_ylim()[0]
+        if y_len > x_len:
+            # Then the y is the longest and we should adust the x to be bigger
+            x_mid = ax.get_xlim()[0] + (x_len / 2)
+            x_max = x_mid + (y_len / 2)
+            x_min = x_mid - (y_len / 2)
+            ax.set_xlim(x_min, x_max)
+            ax.set_aspect('equal', 'box')
+            return
+        else:
+            # Then the y is the longest and we should adust the x to be bigger
+            y_mid = ax.get_ylim()[0] + (y_len / 2)
+            y_max = y_mid + (x_len / 2)
+            y_min = y_mid - (x_len / 2)
+            ax.set_ylim(y_min, y_max)
+            ax.set_aspect('equal', 'box')
+            return
+
+
+
+
+
+
 class BuitragoHier(Buitrago):
     """
     Plot up a series of dendrograms
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, dist_type='bc'):
+        super().__init__(dist_type=dist_type)
 
         # setup fig
         # 6 rows for the dendro and 1 for the coloring by species
@@ -69,27 +198,11 @@ class BuitragoHier(Buitrago):
         self.region_ax = plt.subplot(gs[14:16, :])
         self.region_ax_legend = plt.subplot(gs[16:17, :])
 
-
-        dist_path = 'sp_output/between_sample_distances/A/20201207T095144_braycurtis_sample_distances_A_sqrt.dist'
-
-        # We have to work out which samples to plot.
-        # I think that some samples were not used in the end for the study due to the
-        # host data being no good.
-        # Also, there will be samples not included in the dist matrix as they contained no A.
-
-        # Run SPHier through blank to get the list of samples we have in the A matrix
-        # THen find the interset of samples listed in the self.pver and self.spis dfs.
-        self.sph = SPHierarchical(dist_output_path=dist_path, no_plotting=True)
-        symbiodinium_names = self.sph.obj_name_to_obj_uid_dict.keys()
-        symbiodinium_host_names = set(symbiodinium_names).intersection(set(self.all_samples_df.index))
-
         self.sph = SPHierarchical(
-            dist_output_path=dist_path, ax=self.dendro_ax,
-            sample_names_included=symbiodinium_host_names)
+            dist_output_path=self.symbiodinium_dist_path, ax=self.dendro_ax,
+            sample_names_included=self.symbiodinium_host_names)
         self.sph.plot()
         self.dendro_ax.collections[0].set_linewidth(0.5)
-        self.sample_uid_to_sample_name = self.sph.obj_uid_to_obj_name_dict
-        self.sample_name_to_sample_uid = self.sph.obj_name_to_obj_uid_dict
 
         # We will hardcode the x coordinates as they seem to be standard for the dendrogram plots
         self.x_coords = range(5, (len(self.sph.dendrogram['ivl']) * 10) + 5, 10)
@@ -106,15 +219,14 @@ class BuitragoHier(Buitrago):
 
         self.plot_bars()
 
-        plt.savefig('dendro_bars.svg')
-        plt.savefig('dendro_bars.png', dpi=1200)
-        foo = 'bar'
+        plt.savefig(f'dendro_bars_{dist_type}.svg')
+        plt.savefig(f'dendro_bars_{dist_type}.png', dpi=1200)
 
     def _plot_region_leg_ax(self):
         self.region_ax_legend.set_xlim(0, 1)
         self.region_ax_legend.set_ylim(0, 1)
         r = []
-        for i, region in enumerate(['MAQ', 'WAJ', 'YAN', 'KAU', 'DOG', 'FAR']):
+        for i, region in enumerate(self.regions):
             r.append(Rectangle((i * 0.16, 0), 0.08, 1, color=self.region_color_dict[region]))
             self.region_ax_legend.text(x=i * 0.16 + 0.09, y=0.5, s=region, va='center', fontsize='xx-small')
         patches_collection = PatchCollection(r, match_original=True)
@@ -125,7 +237,7 @@ class BuitragoHier(Buitrago):
     def plot_bars(self):
         # We want to plot the bars in the order of the hierarchical
         # we will use the sph.dendrogram['ivl'] uids converted to names
-        dendrogram_sample_name_order = [self.sample_uid_to_sample_name[_] for _ in self.sph.dendrogram['ivl']]
+        dendrogram_sample_name_order = [self.symbiodinium_sample_uid_to_sample_name_dict[_] for _ in self.sph.dendrogram['ivl']]
         # Now plot the bars
         spb = SPBars(
             seq_count_table_path=self.seq_count_table_path,
@@ -148,9 +260,9 @@ class BuitragoHier(Buitrago):
         width = 10
         rectangles = []
         for sample_uid, x_coord in self.sample_name_to_x_coord_dict.items():
-            if self.sample_uid_to_sample_name[sample_uid][0] in ['S', 'P']:
+            if self.symbiodinium_sample_uid_to_sample_name_dict[sample_uid][0] in ['S', 'P']:
                 if meta == 'region':
-                    c = self.region_color_dict[self.all_samples_df.at[self.sample_uid_to_sample_name[sample_uid], 'REGION']]
+                    c = self.region_color_dict[self.all_samples_df.at[self.symbiodinium_sample_uid_to_sample_name_dict[sample_uid], 'REGION']]
                     rectangles.append(Rectangle(
                         (x_coord - width / 2, 0),
                         width,
@@ -159,7 +271,7 @@ class BuitragoHier(Buitrago):
                     rectangles.append(Rectangle(
                         (x_coord - width / 2, 0),
                         width,
-                        1, color=self.species_color_dict[self.sample_uid_to_sample_name[sample_uid][0]]))
+                        1, color=self.species_color_dict[self.symbiodinium_sample_uid_to_sample_name_dict[sample_uid][0]]))
             else:
                 # negative sample
                 rectangles.append(Rectangle(
@@ -248,21 +360,11 @@ class BuitragoBars(Buitrago):
 
         foo = 'bar'
 
-BuitragoHier()
+# For plotting the ordinations
+BuitragoOrdinations(dist_type='uf')
+
+# For plotting the dendrogram figure with associated meta info and sequences
+# BuitragoHier(dist_type='uf')
+
+# For plotting the north to south genera, sequence, and profile bars for each species
 # BuitragoBars()
-
-
-# # Get the x coordinates of the leaves
-        # # Get the point coordinates of the branches that come from the leaftips.
-        # # I have saved this code but its basically pointless.
-        # x_coords = []
-        # leaf_lines = []
-        # for coord_list in sph.ax.collections[0].get_segments():
-        #     # The x coordinates of leafs
-        #     leaf_x_coords = [_[0] for _ in coord_list if _[1] == 0]
-        #     x_coords.extend(leaf_x_coords)
-        #     # The y coordinates of the first line originating from the leaf base
-        #     leaf_y_coords = [_[1] for _ in coord_list if _[0] in leaf_x_coords and _[1] != 0]
-        #     leaf_lines.extend([[(x, 0), (x, y)] for x, y in zip(leaf_x_coords, leaf_y_coords)])
-        # x_coords = sorted(x_coords)
-        # leaf_lines.sort(key=lambda x: x[0][0])
