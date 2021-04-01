@@ -2,3 +2,8 @@
 .idea/
 ITS2/*.png
 ITS2/*.svg
+.Rproj.user
+.vscode/
+ITS2/.Rhistory
+ITS2/ITS2_permanova_results.txt
+ITS2/Pver.major.host.genetic.cluster.txt
