@@ -5,6 +5,7 @@ from sputils.sphierarchical import SPHierarchical
 import matplotlib as mpl
 mpl.use('TkAgg')
 import matplotlib.pyplot as plt
+plt.rcParams['svg.fonttype'] = 'none'
 import matplotlib.gridspec as gridspec
 import pandas as pd
 import os
@@ -418,7 +419,8 @@ class BuitragoBars(Buitrago):
                         line_colors.append("black")
                         line_widths.append(2)
                 ax[0].vlines(x=lines, ymin=0, ymax=1, colors=line_colors, linewidths=line_widths)
-                plt.savefig(os.path.join(self.plotting_dir, f"{self.titles[(3*i)+j]}.bars.svg"))
+                plt.savefig(os.path.join(self.plotting_dir, f"{self.titles[(3 * i) + j]}.bars.svg"))
+                plt.savefig(os.path.join(self.plotting_dir, f"{self.titles[(3*i)+j]}.bars.pdf"))
                 plt.savefig(os.path.join(self.plotting_dir, f"{self.titles[(3*i)+j]}.bars.png",), dpi=600)
                 plt.close(fig)
                 foo = "bar"

@@ -57,14 +57,14 @@ P10=c("#669900","#99cc33","#ccee66","#006699","#3399cc","#990066","#cc3399","#ff
 P20=c("#fad390", "#f6b93b", "#fa983a", "#e58e26", "#f8c291", "#e55039", "#eb2f06", "#b71540", "#6a89cc", "#4a69bd","#1e3799", "#0c2461", "#82ccdd", "#60a3bc", "#3c6382", "#0a3d62", "#b8e994", "#78e08f", "#38ada9", "#079992", "#C0C0C0")
 
 pver.ord = ordinate(phyloseq.pver, method = "PCoA", distance = "bray")
-pver.plot.reef = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="REEF") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("PVER.REEF") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
-pver.plot.gen_cluster = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="GEN_CLUSTER") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("PVER.GEN_CLUSTER") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
+pver.plot.reef = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="REEF") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("PVER.REEF.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
+pver.plot.gen_cluster = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="GEN_CLUSTER") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("PVER.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
 
 spis.ord = ordinate(phyloseq.spis, method = "PCoA", distance = "bray")
-spis.plot.reef = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="REEF") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("SPIS.REEF") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
-spis.plot.gen_cluster = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="GEN_CLUSTER") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("SPIS.GEN_CLUSTER") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
+spis.plot.reef = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="REEF") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("SPIS.REEF.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
+spis.plot.gen_cluster = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="GEN_CLUSTER") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("SPIS.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
 
-pdf("plots/ordinations.pdf", width=10,height=10, pointsize = 10)
+pdf("plots/ordinations.pdf", width=14, height=10, pointsize = 10)
 gridExtra::grid.arrange( pver.plot.reef, spis.plot.reef, pver.plot.gen_cluster, spis.plot.gen_cluster, ncol=2, nrow=2)
 dev.off()
 detach("package:microbiome", unload=TRUE)
