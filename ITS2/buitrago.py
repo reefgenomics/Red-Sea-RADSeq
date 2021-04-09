@@ -15,22 +15,31 @@ from matplotlib.colors import ListedColormap
 import numpy as np
 
 class Buitrago:
-    """A base class that will give access to the basic meta info dfs"""
+    """
+    A base class that will give access to the basic meta info dfs
+    For the plotting of the ordinations and the bar plots
+    we only want to be plotting the samples that are in the two lists:
+    pver.ind.ordered.byclusters.txt
+    spis.ind.ordered.byclusters.txt
+    We will get the reef info from the name.
+    """
     def __init__(self, dist_type):
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
-        self.pver_df = pd.read_csv(
-            filepath_or_buffer=os.path.join(self.root_dir, 'pver.14reef.277ind.ordered.strata.txt'),
-            index_col=0, sep='\t'
-        )
-        self.pver_df = self.pver_df.iloc[::-1]
-        self.spis_df = pd.read_csv(
-            filepath_or_buffer=os.path.join(self.root_dir, 'spis.18reef.368ind.ordered.strata.txt'),
-            index_col=0, sep='\t'
-        )
-        self.spis_df = self.spis_df.iloc[::-1]
-        self.spis_df.drop(labels=['SWAJ-R1-43', 'SMAQ-R1-30'], axis=0, inplace=True)
-        self.all_samples_df = pd.concat([self.pver_df,self.spis_df])
-        self.sample_names = list(self.spis_df.index) + list(self.pver_df.index)
+        self.plotting_dir = os.path.join(self.root_dir, "plots")
+
+        # Count table relative paths
+        self.seq_count_table_path = os.path.join(self.root_dir,
+                                                 'sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt')
+        self.profile_count_table_path = os.path.join(self.root_dir,
+                                                     'sp_output/its2_type_profiles/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.txt')
+
+        # dfs that hold reef and region info
+        self.pver_df = self._make_pver_df()
+
+        self.spis_df = self._make_spis_df()
+
+        self.all_samples_df = pd.concat([self.pver_df, self.spis_df])
+        self.sample_names = list(self.all_samples_df.index.values)
 
         # Count table relative paths
         self.seq_count_table_path = os.path.join(self.root_dir,
@@ -65,6 +74,33 @@ class Buitrago:
         self.symbiodinium_sample_uid_to_sample_name_dict = {
             v: k for k, v in self.symbiodinium_sample_uid_to_sample_name_dict.items()
         }
+
+    def _make_spis_df(self):
+        with open("spis.ind.ordered.byclusters.txt", "r") as f:
+            spis_to_plot = [_.rstrip() for _ in f]
+        spis_df_list = []
+        for _ in spis_to_plot:
+            # list of sample name, reef, region
+            reef = '-'.join(_.split('-')[:2])[1:]
+            region = reef.split('-')[0]
+            spis_df_list.append([_, reef, region])
+        spis_df = pd.DataFrame(spis_df_list, columns=['sample_name', 'reef', 'region'])
+        spis_df = spis_df.set_index('sample_name')
+        spis_df.drop(labels=['SWAJ-R1-43'], axis=0, inplace=True)
+        return spis_df
+
+    def _make_pver_df(self):
+        with open("pver.ind.ordered.byclusters.txt", "r") as f:
+            pver_to_plot = [_.rstrip() for _ in f]
+        pver_df_list = []
+        for _ in pver_to_plot:
+            # list of sample name, reef, region
+            reef = '-'.join(_.split('-')[:2])[1:]
+            region = reef.split('-')[0]
+            pver_df_list.append([_, reef, region])
+        df = pd.DataFrame(pver_df_list, columns=['sample_name', 'reef', 'region'])
+        return df.set_index('sample_name')
+
 
     def _mm2inch(self, *tupl):
         inch = 25.4
@@ -176,10 +212,6 @@ class BuitragoOrdinations(Buitrago):
             return
 
 
-
-
-
-
 class BuitragoHier(Buitrago):
     """
     Plot up a series of dendrograms
@@ -288,32 +320,31 @@ class BuitragoHier(Buitrago):
 
 
 class BuitragoBars(Buitrago):
-    def __init__(self):
-        super().__init__()
-        self.fig = plt.figure(figsize=self._mm2inch((200, 320)))
+    def __init__(self, dist_type='bc'):
+        super().__init__(dist_type)
+        self.bar_figures_dir = os.path.join(self.root_dir, "bar_figures")
+        # self.fig = plt.figure(figsize=self._mm2inch((200, 320)))
         # bars to legends at ratio of 4:1
         gs = gridspec.GridSpec(nrows=4, ncols=6)
-        # TODO we are here, setting up the axes that we will then pass into the sputils.
-        # TODO we still need to write the legend making for the utils module and use it here.
         # Then we need to look at ordinations and hierarchical clustering and annotating accorrding to the site
         # and reef.
         # There will be 6 axes for plotting and 3 legend axes
         # 2 sets of 3 one for each
         self.titles = ['pver_genera', 'pver_seq', 'pver_profile', 'spis_genera', 'spis_seq', 'spis_profile']
-        self.bar_ax_arr = [
-            # pver_genera_ax
-            plt.subplot(gs[:4, :1]),
-            # pver_seq_ax
-            plt.subplot(gs[:4, 1:2]),
-            # pver_profile_ax
-            plt.subplot(gs[:4, 2:3]),
-            # spis_genera_ax
-            plt.subplot(gs[:4, 3:4]),
-            # spis_seq_ax
-            plt.subplot(gs[:4, 4:5]),
-            # spis_profile_ax
-            plt.subplot(gs[:4, 5:6]),
-        ]
+        # self.bar_ax_arr = [
+        #     # pver_genera_ax
+        #     plt.subplot(gs[:4, :1]),
+        #     # pver_seq_ax
+        #     plt.subplot(gs[:4, 1:2]),
+        #     # pver_profile_ax
+        #     plt.subplot(gs[:4, 2:3]),
+        #     # spis_genera_ax
+        #     plt.subplot(gs[:4, 3:4]),
+        #     # spis_seq_ax
+        #     plt.subplot(gs[:4, 4:5]),
+        #     # spis_profile_ax
+        #     plt.subplot(gs[:4, 5:6]),
+        # ]
 
         # self.genera_leg_ax = plt.subplot(gs[4:5, :2])
         # self.seq_leg_ax = plt.subplot(gs[4:5, 2:4])
@@ -324,7 +355,7 @@ class BuitragoBars(Buitrago):
         spb = SPBars(
             seq_count_table_path=self.seq_count_table_path,
             profile_count_table_path=self.profile_count_table_path,
-            plot_type='seq_and_profile', orientation='v', legend=False, relative_abundnce=True
+            plot_type='seq_and_profile', orientation='v', legend=False, relative_abundance=True, no_plotting=True
         )
         self.seq_color_dict = spb.seq_color_dict
         self.profile_color_dict = spb.profile_color_dict
@@ -334,37 +365,70 @@ class BuitragoBars(Buitrago):
             ('seq_only', self.seq_color_dict, None, False),
             ('profile_only', None, self.profile_color_dict, False)]
         # Now we can plot up each of the axes
-        for i, species_sample_lists in enumerate([self.pver_df.index.values, self.spis_df.index.values]):
+        # TODO put it horizontal and plot a black line per reef.
+        for i, df in enumerate([self.pver_df, self.spis_df]):
             for j, (plot_type, seq_color_dict, profile_color_dict, color_by_genus) in enumerate(config_tups):
-                sp_bars = SPBars(
-                    seq_count_table_path=self.seq_count_table_path,
-                    profile_count_table_path=self.profile_count_table_path,
-                    plot_type=plot_type, orientation='v', legend=False, relative_abundnce=True,
-                    color_by_genus=color_by_genus, sample_outline=False, sample_names_included=species_sample_lists,
-                    bar_ax=self.bar_ax_arr[(i*3) + j], seq_color_dict=seq_color_dict,
-                    profile_color_dict=profile_color_dict
-                )
-                sp_bars.plot()
+                fig, ax = plt.subplots(ncols=1, nrows=2, figsize=self._mm2inch((320, 200)))
+                if plot_type == "seq_only":
+                    if color_by_genus:
+                        sp_bars = SPBars(
+                            seq_count_table_path=self.seq_count_table_path,
+                            profile_count_table_path=self.profile_count_table_path,
+                            plot_type=plot_type, orientation='h', legend=True, relative_abundance=True,
+                            color_by_genus=color_by_genus, sample_outline=False,
+                            sample_names_included=df.index.values,
+                            bar_ax=ax[0], genera_leg_ax=ax[1], seq_color_dict=seq_color_dict,
+                            profile_color_dict=profile_color_dict
+                        )
+                    else:
+                        sp_bars = SPBars(
+                            seq_count_table_path=self.seq_count_table_path,
+                            profile_count_table_path=self.profile_count_table_path,
+                            plot_type=plot_type, orientation='h', legend=True, relative_abundance=True,
+                            color_by_genus=color_by_genus, sample_outline=False, sample_names_included=df.index.values,
+                            bar_ax=ax[0], seq_leg_ax=ax[1], seq_color_dict=seq_color_dict,
+                            profile_color_dict=profile_color_dict
+                        )
+                    sp_bars.plot()
+                if plot_type == "profile_only":
+                    sp_bars = SPBars(
+                        seq_count_table_path=self.seq_count_table_path,
+                        profile_count_table_path=self.profile_count_table_path,
+                        plot_type=plot_type, orientation='h', legend=True, relative_abundance=True,
+                        color_by_genus=color_by_genus, sample_outline=False, sample_names_included=df.index.values,
+                        bar_ax=ax[0], profile_leg_ax=ax[1], seq_color_dict=seq_color_dict,
+                        profile_color_dict=profile_color_dict
+                    )
+                    sp_bars.plot()
+                # Now annotate and save the figure
+                ax[0].set_xticks([])
+                ax[0].set_yticks([])
+                ax[0].set_title(self.titles[(3*i)+j], fontsize='small')
+                # Need to add a black line for each of the reef borders
+                reef = df.iloc[0]["reef"]
+                lines = []
+                line_colors = []
+                line_widths = []
+                for k, ind in enumerate(df.index.values):
+                    new_reef = df.at[ind, "reef"]
+                    if new_reef != reef:
+                        reef = new_reef
+                        # Then we need to plot a black line at k - 0.5
+                        lines.append(k-0.5)
+                        line_colors.append("black")
+                        line_widths.append(2)
+                ax[0].vlines(x=lines, ymin=0, ymax=1, colors=line_colors, linewidths=line_widths)
+                plt.savefig(os.path.join(self.plotting_dir, f"{self.titles[(3*i)+j]}.bars.svg"))
+                plt.savefig(os.path.join(self.plotting_dir, f"{self.titles[(3*i)+j]}.bars.png",), dpi=600)
+                plt.close(fig)
+                foo = "bar"
 
-        for ax, title in zip(self.bar_ax_arr, self.titles):
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_title(title, fontsize='small')
-        self.fig.show()
-        plt.savefig('bar_plots.svg')
-        plt.savefig('bar_plots.png', dpi=1200)
-        # TODO we are here
-
-        # put horizontal lines to show the reef boundaries
-        # TODO but should probably prioritise getting some ordinations plotted up
-
-        foo = 'bar'
 
 # For plotting the ordinations
-BuitragoOrdinations(dist_type='uf')
+# BuitragoOrdinations(dist_type='uf')
 
 # For plotting the dendrogram figure with associated meta info and sequences
 # BuitragoHier(dist_type='uf')
 
 # For plotting the north to south genera, sequence, and profile bars for each species
-# BuitragoBars()
+BuitragoBars()
