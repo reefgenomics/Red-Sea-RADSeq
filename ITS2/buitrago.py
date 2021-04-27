@@ -17,6 +17,8 @@ import numpy as np
 from collections import defaultdict
 import re
 import itertools
+import pickle
+
 class Buitrago:
     """
     A base class that will give access to the basic meta info dfs
@@ -220,7 +222,7 @@ class BuitragoHier_split_species(Buitrago):
     Plot up a series of dendrograms
     This dendogram will be split by species and we will perform clustering for each species and plot this up as well
     """
-    def __init__(self, dist_type='bc', consolidate_profiles=False):
+    def __init__(self, dist_type='bc', consolidate_profiles=True):
         super().__init__(dist_type=dist_type)
 
         # setup fig
@@ -298,6 +300,7 @@ class BuitragoHier_split_species(Buitrago):
 
     def _consolidate_and_plot_profiles(self):
         # To get the profiles color dict
+
         spb = SPBars(
             seq_count_table_path=self.seq_count_table_path,
             profile_count_table_path=self.profile_count_table_path,
@@ -329,22 +332,28 @@ class BuitragoHier_split_species(Buitrago):
 
         profile_count_df_abund.set_index(keys='ITS2 type profile UID', drop=True, inplace=True)
         self.profile_count_df_abund = profile_count_df_abund.drop(profile_count_df_abund.columns[0], axis=1)
+        # A dataframe that we will later modify to reflect the profile clustering
+        self.profile_count_df_abund_clustered = self.profile_count_df_abund.copy()
         self.profile_count_df_abund_rel = self.profile_count_df_abund.div(self.profile_count_df_abund.sum(axis=1), axis=0)
-        self.profile_to_div_set_dict = defaultdict(set)
+
         # Now for species for each sample, grab a list of the profiles and link this to a set of the divs
         # This dict is a profile, uid to a representative profile uid. Purely used for coloring in the plotting
-        self.prof_to_rep_dict_pver = self.cluster_profiles(host_names=self.symbiodinium_host_names_pver)
+        self.prof_to_rep_dict = self.cluster_profiles()
+        # pickle out both of the prof_to_rep_dict s
+        pickle.dump( self.prof_to_rep_dict, open( "prof_to_rep_dict.p", "wb" ) )
         # Now plot up the profiles on the plot
         self._plot_profiles(
             ax=self.prof_bars_ax_pver, host_names=self.symbiodinium_host_names_pver,
-            name_to_coord_dict=self.sample_name_to_x_coord_dict_pver, repdict=self.prof_to_rep_dict_pver,
+            name_to_coord_dict=self.sample_name_to_x_coord_dict_pver, repdict=self.prof_to_rep_dict,
             x_coords=self.x_coords_pver)
 
-        self.prof_to_rep_dict_spis = self.cluster_profiles(host_names=self.symbiodinium_host_names_spis)
+        # At this point we will also write out the self.profile_count_df_abund_clustered for use by the bars
+        # we will do some manual modification to it to make it the write form.
+        self.profile_count_df_abund_clustered.to_csv("profile_count_df_abund_clustered.csv")
         # Now plot up the profiles on the plot
         self._plot_profiles(
             ax=self.prof_bars_ax_spis, host_names=self.symbiodinium_host_names_spis,
-            name_to_coord_dict=self.sample_name_to_x_coord_dict_spis, repdict=self.prof_to_rep_dict_spis,
+            name_to_coord_dict=self.sample_name_to_x_coord_dict_spis, repdict=self.prof_to_rep_dict,
             x_coords=self.x_coords_spis)
 
         foo = "bar"
@@ -375,23 +384,23 @@ class BuitragoHier_split_species(Buitrago):
         ax.set_yticks([])
         ax.set_ylabel("profiles", rotation='vertical', fontsize='xx-small')
 
-    def cluster_profiles(self, host_names):
-        for sample_name in host_names:
-            sample_uid = self.sample_name_to_sample_uid_dict[sample_name]
+    def cluster_profiles(self):
+        profile_to_div_set_dict = defaultdict(set)
+        for sample_uid in self.profile_count_df_abund.index:
             # get the list of profiles in the sample
             ser = self.profile_count_df_abund.loc[sample_uid]
             non_z = ser[ser != 0].keys()
             for prof_uid in non_z:
-                if prof_uid not in self.profile_to_div_set_dict:
+                if prof_uid not in profile_to_div_set_dict:
                     prof_name = self.profile_count_df_meta.at["ITS2 type profile", prof_uid]
                     prof_divs = set(filter(None, re.split("[/\-]+", prof_name)))
-                    self.profile_to_div_set_dict[prof_uid] = prof_divs
+                    profile_to_div_set_dict[prof_uid] = prof_divs
         # Here we have a collection of all of the profiles found in the pver
         # Now work out the representatives
         rep_divs_to_profiles = defaultdict(list)
-        for profile_outer, div_outer in self.profile_to_div_set_dict.items():
+        for profile_outer, div_outer in profile_to_div_set_dict.items():
             set_of_representatives = set()
-            for profile_inner, div_inner in self.profile_to_div_set_dict.items():
+            for profile_inner, div_inner in profile_to_div_set_dict.items():
                 if not profile_inner == profile_outer:
                     divs_in_common = div_outer.intersection(div_inner)
                     if len(div_outer.intersection(div_inner)) >= 3:
@@ -428,6 +437,10 @@ class BuitragoHier_split_species(Buitrago):
                         else:
                             print("we have a problem")
         prof_to_rep_dict = {}
+        # Create a new column in the profile count table
+        for k, v in rep_divs_to_profiles.items():
+            self.profile_count_df_abund_clustered[k] = self.profile_count_df_abund_clustered[v].sum(axis=1)
+            self.profile_count_df_abund_clustered.drop(columns=list(v), inplace=True)
         for k, v in rep_divs_to_profiles.items():
             for prof_uid in v:
                 prof_to_rep_dict[prof_uid] = v[0]
@@ -618,7 +631,7 @@ class BuitragoHier(Buitrago):
 
 
 class BuitragoBars(Buitrago):
-    def __init__(self, dist_type='bc'):
+    def __init__(self, dist_type='bc', cluster_profiles=True):
         super().__init__(dist_type)
         self.bar_figures_dir = os.path.join(self.root_dir, "bar_figures")
         # self.fig = plt.figure(figsize=self._mm2inch((200, 320)))
@@ -628,28 +641,15 @@ class BuitragoBars(Buitrago):
         # and reef.
         # There will be 6 axes for plotting and 3 legend axes
         # 2 sets of 3 one for each
-        self.titles = ['pver_genera', 'pver_seq', 'pver_profile', 'spis_genera', 'spis_seq', 'spis_profile']
-        # self.bar_ax_arr = [
-        #     # pver_genera_ax
-        #     plt.subplot(gs[:4, :1]),
-        #     # pver_seq_ax
-        #     plt.subplot(gs[:4, 1:2]),
-        #     # pver_profile_ax
-        #     plt.subplot(gs[:4, 2:3]),
-        #     # spis_genera_ax
-        #     plt.subplot(gs[:4, 3:4]),
-        #     # spis_seq_ax
-        #     plt.subplot(gs[:4, 4:5]),
-        #     # spis_profile_ax
-        #     plt.subplot(gs[:4, 5:6]),
-        # ]
-
-        # self.genera_leg_ax = plt.subplot(gs[4:5, :2])
-        # self.seq_leg_ax = plt.subplot(gs[4:5, 2:4])
-        # self.profile_leg_ax = plt.subplot(gs[4:5, 4:6])
+        if cluster_profiles:
+            self.titles = ['pver_genera', 'pver_seq', 'pver_profile_clustered', 'spis_genera', 'spis_seq', 'spis_profile_clustered']
+        else:
+            self.titles = ['pver_genera', 'pver_seq', 'pver_profile', 'spis_genera', 'spis_seq', 'spis_profile']
 
         # create an instance of SPBars just to generate a seq and profile dict for the whole dataset
         # then use this dictionary for plotting the actual plots.
+        if cluster_profiles:
+            self.profile_count_table_path = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.clustered.txt"
         spb = SPBars(
             seq_count_table_path=self.seq_count_table_path,
             profile_count_table_path=self.profile_count_table_path,
@@ -657,6 +657,19 @@ class BuitragoBars(Buitrago):
         )
         self.seq_color_dict = spb.seq_color_dict
         self.profile_color_dict = spb.profile_color_dict
+
+        # if cluster_profiles:
+        #     # Then we need to modify the profile colour dict so that the clustered profiles are the same color.
+        #     # To do this we will simply set the color of the profile in question to the colour of the representative
+        #     # color and then send this into the usual bar plotting function below.
+        #     # We have pickled out the representative dict for each of the species so we can work with this
+        #     # These representative dicts were made during the BuitragoHier_split_species class.
+        #     self.prof_to_rep_dict_pver = pickle.load(open("prof_to_rep_dict_pver.p", "rb"))
+        #     self.prof_to_rep_dict_spis = pickle.load(open("prof_to_rep_dict_spis.p", "rb"))
+        #     for k, v in self.prof_to_rep_dict_spis.items():
+        #         self.profile_color_dict[k] = self.profile_color_dict[v]
+        #     for k, v in self.prof_to_rep_dict_pver.items():
+        #         self.profile_color_dict[k] = self.profile_color_dict[v]
 
         config_tups = [
             ('seq_only', self.seq_color_dict, None, True),
@@ -729,7 +742,7 @@ class BuitragoBars(Buitrago):
 # For plotting the dendrogram figure with associated meta info and sequences
 # BuitragoHier(dist_type='bc')
 # For plotting the dendogram split by species and with the option of clustering the profiles
-BuitragoHier_split_species(dist_type='bc')
+# BuitragoHier_split_species(dist_type='bc')
 
 # For plotting the north to south genera, sequence, and profile bars for each species
 BuitragoBars()
