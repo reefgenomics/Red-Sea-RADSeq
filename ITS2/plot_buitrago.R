@@ -10,13 +10,13 @@ symportal.post.med.count.table.path <- "/Users/benjaminhume/Documents/projects/2
 
 # PVER meta df
 pver.meta.df <- read.table(pver.gentype.path, head=TRUE, sep=',')
-pver.meta.df <- base::transform(pver.meta.df, REEF=str_extract(pver.meta.df$INDIVIDUALS, "[A-Z]{3}-R\\d+"))
+pver.meta.df <- base::transform(pver.meta.df, REEF=str_extract(pver.meta.df$INDIVIDUALS, "[A-Z]{3}-R\\d+"), REGION=str_extract(pver.meta.df$INDIVIDUALS, "[A-Z]{3}(?=-)"))
 colnames(pver.meta.df)[2] <- "GEN_CLUSTER"
 pver.meta.df = base::transform(pver.meta.df, SPECIES="PVER")
 
 # SPIS meta df
 spis.meta.df <- read.table(spis.gentype.path, head=TRUE, sep=',')
-spis.meta.df <- base::transform(spis.meta.df, REEF=str_extract(spis.meta.df$INDIVIDUALS, "[A-Z]{3}-R\\d+"))
+spis.meta.df <- base::transform(spis.meta.df, REEF=str_extract(spis.meta.df$INDIVIDUALS, "[A-Z]{3}-R\\d+"), REGION=str_extract(spis.meta.df$INDIVIDUALS, "[A-Z]{3}(?=-)"))
 colnames(spis.meta.df)[2] <- "GEN_CLUSTER"
 # Drop SWAJ-R1-43
 spis.meta.df = spis.meta.df[!(spis.meta.df$INDIVIDUALS %in% c("SWAJ-R1-43")),]
@@ -57,14 +57,16 @@ P10=c("#669900","#99cc33","#ccee66","#006699","#3399cc","#990066","#cc3399","#ff
 P20=c("#fad390", "#f6b93b", "#fa983a", "#e58e26", "#f8c291", "#e55039", "#eb2f06", "#b71540", "#6a89cc", "#4a69bd","#1e3799", "#0c2461", "#82ccdd", "#60a3bc", "#3c6382", "#0a3d62", "#b8e994", "#78e08f", "#38ada9", "#079992", "#C0C0C0")
 
 pver.ord = ordinate(phyloseq.pver, method = "PCoA", distance = "bray")
-pver.plot.reef = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="REEF") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("PVER.REEF.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
-pver.plot.gen_cluster = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="GEN_CLUSTER") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("PVER.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
+pver.plot.reef = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="REEF") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("PVER.REEF.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
+pver.plot.region = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="REGION") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("PVER.REGION.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
+pver.plot.gen_cluster = plot_ordination(physeq=phyloseq.pver, ordination=pver.ord, color="GEN_CLUSTER") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("PVER.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
 
 spis.ord = ordinate(phyloseq.spis, method = "PCoA", distance = "bray")
-spis.plot.reef = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="REEF") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("SPIS.REEF.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
-spis.plot.gen_cluster = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="GEN_CLUSTER") + geom_point(size = 3, alpha = 1) + theme_bw() + ggtitle("SPIS.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
+spis.plot.reef = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="REEF") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("SPIS.REEF.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P20)
+spis.plot.region = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="REGION") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("SPIS.REGION.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
+spis.plot.gen_cluster = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="GEN_CLUSTER") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("SPIS.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=P6)
 
-pdf("plots/ordinations.pdf", width=14, height=10, pointsize = 10)
-gridExtra::grid.arrange( pver.plot.reef, spis.plot.reef, pver.plot.gen_cluster, spis.plot.gen_cluster, ncol=2, nrow=2)
+pdf("plots/ordinations.pdf", width=14, height=15, pointsize = 10)
+gridExtra::grid.arrange( pver.plot.reef, spis.plot.reef, pver.plot.region, spis.plot.region, pver.plot.gen_cluster, spis.plot.gen_cluster, ncol=2, nrow=3)
 dev.off()
 detach("package:microbiome", unload=TRUE)
