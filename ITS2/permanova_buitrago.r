@@ -51,6 +51,19 @@ PerformPermanova <- function(
 
   # Generate reef info by using the name
   genotype.meta.df <- transform(genotype.meta.df, REEF=str_extract(INDIVIDUALS, "[A-Z]{3}-R\\d+"))
+  # TODO here we should join the temperature data to the genotype.meta.df
+  reef.temp.df = read.csv("reef_temp.csv")
+  rownames(reef.temp.df) = reef.temp.df$reef
+  colnames(reef.temp.df)[1] = "REEF"
+  genotype.meta.df = transform(genotype.meta.df, temp=reef.temp.df[REEF, "temp"])
+  genotype.meta.df$tempf<-
+    with(genotype.meta.df,
+         ifelse(temp >= 27 & temp < 28, "cool",
+                ifelse(temp >= 29 & temp < 30, "med-cool",
+                       ifelse(temp >= 30 & temp < 31, "med-warm",
+                              ifelse(temp >= 31 & temp < 32, "warm", "other")))))
+  genotype.meta.df$tempf <- as.factor(genotype.meta.df$tempf)
+    
   # Change ambiguous STRATA name to GEN_CLUSTER
   colnames(genotype.meta.df)[2] <- "GEN_CLUSTER"
 
@@ -60,13 +73,13 @@ PerformPermanova <- function(
   # PERMANOVA
   sink(glue("{title}.permanova.results.main.txt"))
   print(glue("PERMANOVA for {title}"))
-  print("dist_matrix ~ REEF*GEN_CLUSTER")
-  a_result <- adonis(formula = sym.dist.df ~ REEF*GEN_CLUSTER, data=genotype.meta.df)
+  print("dist_matrix ~ temp*GEN_CLUSTER")
+  a_result <- adonis(formula = sym.dist.df ~ tempf*GEN_CLUSTER, data=genotype.meta.df)
   print(a_result)
   cat("\n\n\n")
   
-  print("dist_matrix ~ GEN_CLUSTER*REEF")
-  a_result <- adonis(formula = sym.dist.df ~ GEN_CLUSTER*REEF, data=genotype.meta.df)
+  print("dist_matrix ~ GEN_CLUSTER*temp")
+  a_result <- adonis(formula = sym.dist.df ~ GEN_CLUSTER*tempf, data=genotype.meta.df)
   print(a_result)
   cat("\n\n\n")
   sink()
@@ -74,25 +87,25 @@ PerformPermanova <- function(
   sink(glue("{title}.permanova.results.pairwise.txt"))
   print("Pairwsie comparisons")
   print(pairwise.adonis(sym.dist.df, genotype.meta.df$GEN_CLUSTER, p.adjust.m="fdr"))
-  print(pairwise.adonis(sym.dist.df, genotype.meta.df$REEF, p.adjust.m="fdr"))
+  print(pairwise.adonis(sym.dist.df, genotype.meta.df$tempf, p.adjust.m="fdr"))
   sink()
   
   sink(glue("{title}.permanova.results.strata.txt"))
-  print(adonis(formula = sym.dist.df ~ GEN_CLUSTER, strata=genotype.meta.df$REEF, data=genotype.meta.df))
+  print(adonis(formula = sym.dist.df ~ GEN_CLUSTER, strata=genotype.meta.df$tempf, data=genotype.meta.df))
   sink()
   
   # BETADISPER
   # REEF
-  mod.reef = betadisper(sym.dist.df, genotype.meta.df$REEF)
+  mod.tempf = betadisper(sym.dist.df, genotype.meta.df$tempf)
   sink(glue("{title}.reef.betadisper.anova.txt"))
-  print(anova(mod.reef))
+  print(anova(mod.tempf))
   print("\n\n\n")
   # mod_reef_type.HSD = TukeyHSD(mod_reef_type)
-  print(permutest(mod.reef, pairwise=TRUE))
+  print(permutest(mod.tempf, pairwise=TRUE))
   sink()
   
   pdf(file=glue("{title}.reef.betadisper.plot.pdf"), height=10, width=10)
-  plot(mod.reef, segments = FALSE, ellipse=TRUE, label = TRUE)
+  plot(mod.tempf, segments = FALSE, ellipse=TRUE, label = TRUE)
   dev.off()
   
   # GEN_CLUSTER
