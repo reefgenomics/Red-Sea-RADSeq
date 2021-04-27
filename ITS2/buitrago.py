@@ -14,7 +14,9 @@ from matplotlib.collections import PatchCollection
 from itertools import chain
 from matplotlib.colors import ListedColormap
 import numpy as np
-
+from collections import defaultdict
+import re
+import itertools
 class Buitrago:
     """
     A base class that will give access to the basic meta info dfs
@@ -218,7 +220,7 @@ class BuitragoHier_split_species(Buitrago):
     Plot up a series of dendrograms
     This dendogram will be split by species and we will perform clustering for each species and plot this up as well
     """
-    def __init__(self, dist_type='bc'):
+    def __init__(self, dist_type='bc', consolidate_profiles=False):
         super().__init__(dist_type=dist_type)
 
         # setup fig
@@ -226,16 +228,16 @@ class BuitragoHier_split_species(Buitrago):
         gs = gridspec.GridSpec(nrows=19, ncols=2)
 
         self.fig = plt.figure(figsize=(self._mm2inch(183, 80)))
-        self.dendro_ax_spis = plt.subplot(gs[:8, :1])
-        self.seq_bars_ax_spis = plt.subplot(gs[8:12, :1])
-        self.prof_bars_ax_spis = plt.subplot(gs[12:16, :1])
-        self.region_ax_spis = plt.subplot(gs[16:18, :1])
+        self.dendro_ax_spis = plt.subplot(gs[:8, 1:2])
+        self.seq_bars_ax_spis = plt.subplot(gs[8:12, 1:2])
+        self.prof_bars_ax_spis = plt.subplot(gs[12:16, 1:2])
+        self.region_ax_spis = plt.subplot(gs[16:18, 1:2])
 
 
-        self.dendro_ax_pver = plt.subplot(gs[:8, 1:2])
-        self.seq_bars_ax_pver = plt.subplot(gs[8:12, 1:2])
-        self.prof_bars_ax_pver = plt.subplot(gs[12:16, 1:2])
-        self.region_ax_pver = plt.subplot(gs[16:18, 1:2])
+        self.dendro_ax_pver = plt.subplot(gs[:8, :1])
+        self.seq_bars_ax_pver = plt.subplot(gs[8:12, :1])
+        self.prof_bars_ax_pver = plt.subplot(gs[12:16, :1])
+        self.region_ax_pver = plt.subplot(gs[16:18, :1])
 
 
         self.region_ax_legend = plt.subplot(gs[18:19, :])
@@ -245,7 +247,7 @@ class BuitragoHier_split_species(Buitrago):
             dist_output_path=self.symbiodinium_dist_path, ax=self.dendro_ax_spis,
             sample_names_included=self.symbiodinium_host_names_spis)
         self.sph_spis.plot()
-        self.dendro_ax_spis.collections[0].set_linewidth(0.5)
+        self.dendro_ax_spis.collections[0].set_linewidth(0.25)
         # self.dendro_ax_spis.set_ylim(0,0.8)
         self.dendro_ax_spis.set_title("S. pistillata", style='italic', fontsize='small')
 
@@ -254,7 +256,7 @@ class BuitragoHier_split_species(Buitrago):
             dist_output_path=self.symbiodinium_dist_path, ax=self.dendro_ax_pver,
             sample_names_included=self.symbiodinium_host_names_pver)
         self.sph_pver.plot()
-        self.dendro_ax_pver.collections[0].set_linewidth(0.5)
+        self.dendro_ax_pver.collections[0].set_linewidth(0.25)
         # self.dendro_ax_pver.set_ylim(0, 0.8)
         self.dendro_ax_pver.set_title("P. verrucosa", style='italic', fontsize='small')
 
@@ -283,11 +285,153 @@ class BuitragoHier_split_species(Buitrago):
 
         self.plot_bars(sphist=self.sph_spis, bar_ax=self.seq_bars_ax_spis, seq=True)
         self.plot_bars(sphist=self.sph_pver, bar_ax=self.seq_bars_ax_pver, seq=True)
-        self.plot_bars(sphist=self.sph_spis, bar_ax=self.prof_bars_ax_spis, seq=False)
-        self.plot_bars(sphist=self.sph_pver, bar_ax=self.prof_bars_ax_pver, seq=False)
 
-        plt.savefig(f'dendro_bars_{dist_type}.species.split.svg')
-        plt.savefig(f'dendro_bars_{dist_type}.species.split.png', dpi=1200)
+        if consolidate_profiles:
+            self._consolidate_and_plot_profiles()
+            foo = "bar"
+        else:
+            self.plot_bars(sphist=self.sph_spis, bar_ax=self.prof_bars_ax_spis, seq=False)
+            self.plot_bars(sphist=self.sph_pver, bar_ax=self.prof_bars_ax_pver, seq=False)
+
+        plt.savefig(f'dendro_bars_{dist_type}.species.split.clustered.svg')
+        plt.savefig(f'dendro_bars_{dist_type}.species.split.clustered.png', dpi=1200)
+
+    def _consolidate_and_plot_profiles(self):
+        # To get the profiles color dict
+        spb = SPBars(
+            seq_count_table_path=self.seq_count_table_path,
+            profile_count_table_path=self.profile_count_table_path,
+            plot_type="profile_only", orientation='h', legend=False, relative_abundance=True,
+            bar_ax=self.prof_bars_ax_spis
+        )
+        self.profile_color_dict = spb.profile_color_dict
+        profile_count_df_abund = pd.read_csv(self.profile_count_table_path, sep='\t', skiprows=[1, 2, 3, 4, 5, 6],
+                                             skipfooter=2, engine='python')
+        profile_count_df_meta = pd.read_csv(self.profile_count_table_path, sep='\t', index_col=0)
+        self.profile_count_df_meta = profile_count_df_meta.drop(profile_count_df_meta.columns[0], axis=1)
+        profile_uid_to_profile_name_dict = {
+            p_uid: p_name for p_uid, p_name in profile_count_df_meta.loc['ITS2 type profile'].items()
+        }
+        profile_name_to_profile_uid_dict = {
+            p_name: p_uid for p_uid, p_name in profile_count_df_meta.loc['ITS2 type profile'].items()
+        }
+
+        sample_uid_to_sample_name_dict = {
+            uid: p_name for uid, p_name in
+            zip(profile_count_df_abund[profile_count_df_abund.columns[0]].values,
+                profile_count_df_abund[profile_count_df_abund.columns[1]].values)
+        }
+        self.sample_name_to_sample_uid_dict = {
+            p_name: uid for uid, p_name in
+            zip(profile_count_df_abund[profile_count_df_abund.columns[0]].values,
+                profile_count_df_abund[profile_count_df_abund.columns[1]].values)
+        }
+
+        profile_count_df_abund.set_index(keys='ITS2 type profile UID', drop=True, inplace=True)
+        self.profile_count_df_abund = profile_count_df_abund.drop(profile_count_df_abund.columns[0], axis=1)
+        self.profile_count_df_abund_rel = self.profile_count_df_abund.div(self.profile_count_df_abund.sum(axis=1), axis=0)
+        self.profile_to_div_set_dict = defaultdict(set)
+        # Now for species for each sample, grab a list of the profiles and link this to a set of the divs
+        # This dict is a profile, uid to a representative profile uid. Purely used for coloring in the plotting
+        self.prof_to_rep_dict_pver = self.cluster_profiles(host_names=self.symbiodinium_host_names_pver)
+        # Now plot up the profiles on the plot
+        self._plot_profiles(
+            ax=self.prof_bars_ax_pver, host_names=self.symbiodinium_host_names_pver,
+            name_to_coord_dict=self.sample_name_to_x_coord_dict_pver, repdict=self.prof_to_rep_dict_pver,
+            x_coords=self.x_coords_pver)
+
+        self.prof_to_rep_dict_spis = self.cluster_profiles(host_names=self.symbiodinium_host_names_spis)
+        # Now plot up the profiles on the plot
+        self._plot_profiles(
+            ax=self.prof_bars_ax_spis, host_names=self.symbiodinium_host_names_spis,
+            name_to_coord_dict=self.sample_name_to_x_coord_dict_spis, repdict=self.prof_to_rep_dict_spis,
+            x_coords=self.x_coords_spis)
+
+        foo = "bar"
+
+    def _plot_profiles(self, ax, host_names, name_to_coord_dict, repdict, x_coords):
+        rectangles = []
+        width = 10
+        for sample_uid, x_coord in name_to_coord_dict.items():
+            bottom = 0
+            for profile_uid in self.profile_count_df_abund_rel:
+                rel_abund = self.profile_count_df_abund_rel.at[sample_uid, profile_uid]
+                if rel_abund != 0:
+                    try:
+                        color = self.profile_color_dict[repdict[profile_uid]]
+                    except KeyError:
+                        color = self.profile_color_dict[profile_uid]
+                    rectangles.append(Rectangle(
+                        (x_coord - 5, bottom),
+                        width, rel_abund, ec=None, fc=color))
+                    bottom += rel_abund
+
+        patches_collection = PatchCollection(rectangles, match_original=True)
+        ax.add_collection(patches_collection)
+        ax.set_xlim((x_coords[0] - 5, x_coords[-1] + 5))
+        ax.set_ylim(0,1)
+        # Remove the axis ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_ylabel("profiles", rotation='vertical', fontsize='xx-small')
+
+    def cluster_profiles(self, host_names):
+        for sample_name in host_names:
+            sample_uid = self.sample_name_to_sample_uid_dict[sample_name]
+            # get the list of profiles in the sample
+            ser = self.profile_count_df_abund.loc[sample_uid]
+            non_z = ser[ser != 0].keys()
+            for prof_uid in non_z:
+                if prof_uid not in self.profile_to_div_set_dict:
+                    prof_name = self.profile_count_df_meta.at["ITS2 type profile", prof_uid]
+                    prof_divs = set(filter(None, re.split("[/\-]+", prof_name)))
+                    self.profile_to_div_set_dict[prof_uid] = prof_divs
+        # Here we have a collection of all of the profiles found in the pver
+        # Now work out the representatives
+        rep_divs_to_profiles = defaultdict(list)
+        for profile_outer, div_outer in self.profile_to_div_set_dict.items():
+            set_of_representatives = set()
+            for profile_inner, div_inner in self.profile_to_div_set_dict.items():
+                if not profile_inner == profile_outer:
+                    divs_in_common = div_outer.intersection(div_inner)
+                    if len(div_outer.intersection(div_inner)) >= 3:
+                        # THen these can be merged
+                        divs_in_common_as_string = ",".join(sorted(divs_in_common))
+                        set_of_representatives.add(divs_in_common_as_string)
+            if set_of_representatives:
+                if len(set_of_representatives) == 1:
+                    rep_divs_to_profiles[list(set_of_representatives)[0]].append(profile_outer)
+                else:
+                    # Make a bunch of 3 tuples of the sets and see which of these is found
+                    # in the largest number of the list_of_representatives
+                    all_divs = set()
+                    for div_set in set_of_representatives:
+                        all_divs.update(set(div_set.split(',')))
+                    three_tup_abund_dict = defaultdict(int)
+                    for three_tup in itertools.combinations(all_divs, 3):
+                        three_set = set(three_tup)
+                        for div_str in set_of_representatives:
+                            div_set = set(div_str.split(","))
+                            if three_set.issubset(div_set):
+                                three_tup_abund_dict[three_tup] += 1
+                    # Now take the most abundant
+                    sorted_tups = sorted(three_tup_abund_dict.items(), key=lambda x: x[1], reverse=True)
+                    biggest = sorted_tups[0][1]
+                    next = sorted_tups[1][1]
+                    if biggest > next:
+                        # all good
+                        div_rep = ",".join(sorted(sorted_tups[0][0]))
+                        rep_divs_to_profiles[div_rep].append(profile_outer)
+                    else:
+                        if {"C21", "C21n", "C21r"}.issubset(div_outer):
+                            rep_divs_to_profiles['C21,C21n,C21r'].append(profile_outer)
+                        else:
+                            print("we have a problem")
+        prof_to_rep_dict = {}
+        for k, v in rep_divs_to_profiles.items():
+            for prof_uid in v:
+                prof_to_rep_dict[prof_uid] = v[0]
+        return prof_to_rep_dict
 
     def _plot_region_leg_ax(self):
         self.region_ax_legend.set_xlim(0, 1)
@@ -320,7 +464,7 @@ class BuitragoHier_split_species(Buitrago):
             seq_count_table_path=self.seq_count_table_path,
             profile_count_table_path=self.profile_count_table_path,
             plot_type=plot_type, orientation='h', legend=False, relative_abundance=True,
-            sample_names_included=dendrogram_sample_name_order, bar_ax=bar_ax, limit_genera=['A']
+            sample_names_included=dendrogram_sample_name_order, bar_ax=bar_ax
         )
         spb.plot()
         bar_ax.set_xticks([])
@@ -519,7 +663,7 @@ class BuitragoBars(Buitrago):
             ('seq_only', self.seq_color_dict, None, False),
             ('profile_only', None, self.profile_color_dict, False)]
         # Now we can plot up each of the axes
-        # TODO put it horizontal and plot a black line per reef.
+
         for i, df in enumerate([self.pver_df, self.spis_df]):
             for j, (plot_type, seq_color_dict, profile_color_dict, color_by_genus) in enumerate(config_tups):
                 fig, ax = plt.subplots(ncols=1, nrows=2, figsize=self._mm2inch((320, 200)))
@@ -584,7 +728,8 @@ class BuitragoBars(Buitrago):
 
 # For plotting the dendrogram figure with associated meta info and sequences
 # BuitragoHier(dist_type='bc')
+# For plotting the dendogram split by species and with the option of clustering the profiles
 BuitragoHier_split_species(dist_type='bc')
 
 # For plotting the north to south genera, sequence, and profile bars for each species
-# BuitragoBars()
+BuitragoBars()
