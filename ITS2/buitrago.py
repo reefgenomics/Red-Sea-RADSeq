@@ -646,10 +646,71 @@ class BuitragoBars(Buitrago):
         else:
             self.titles = ['pver_genera', 'pver_seq', 'pver_profile', 'spis_genera', 'spis_seq', 'spis_profile']
 
+
+
+
+
         # create an instance of SPBars just to generate a seq and profile dict for the whole dataset
         # then use this dictionary for plotting the actual plots.
         if cluster_profiles:
             self.profile_count_table_path = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.clustered.txt"
+
+        # We want to work out the number of profiles before and after clustering in spis and pver samples
+        # This code works. Just uncomment to do the plotting.
+        # prof_count_df = pd.read_table(self.profile_count_table_path)
+        # prof_count_df = prof_count_df.iloc[6:,]
+        # cols = list(prof_count_df)
+        # cols[1] = "sample_name"
+        # prof_count_df.columns = cols
+        # prof_count_df = prof_count_df.set_index("sample_name")
+        # prof_count_df = prof_count_df.iloc[:-2,1:].astype(float).astype(int)
+        # pver_profiles = set()
+        # pver_maj_profiles = defaultdict(int)
+        # for sample in self.pver_df.index:
+        #     ser = prof_count_df.loc[sample]
+        #     pver_maj_profiles[ser.idxmax()] += 1
+        #     non_zero_profiles = list(ser[ser!=0].index)
+        #     pver_profiles.update(non_zero_profiles)
+        # pver_maj_tot = sum(pver_maj_profiles.values())
+        # tot = 0
+        # pver_cum = [0]
+        # for k, v in sorted(pver_maj_profiles.items(), key=lambda x:x[1], reverse=True):
+        #     tot += v
+        #     print(f"{k}:{tot/pver_maj_tot}")
+        #     pver_cum.append(tot/pver_maj_tot)
+        # print("\n\n\n")
+        #
+        # spis_profiles = set()
+        # spis_maj_profiles = defaultdict(int)
+        # for sample in self.spis_df.index:
+        #     ser = prof_count_df.loc[sample]
+        #     spis_maj_profiles[ser.idxmax()] += 1
+        #     non_zero_profiles = list(ser[ser != 0].index)
+        #     spis_profiles.update(non_zero_profiles)
+        #
+        # spis_maj_tot = sum(spis_maj_profiles.values())
+        # tot = 0
+        # spis_cum = [0]
+        # for k, v in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True):
+        #     tot += v
+        #     print(f"{k}:{tot/spis_maj_tot}")
+        #     spis_cum.append(tot/spis_maj_tot)
+        # print("\n\n\n")
+        # print(f"When clustering is {cluster_profiles}; pver has {len(pver_profiles)} profiles, spis has {len(spis_profiles)}.")
+        # print(f"\tOr when considering only most abundant profiles; pver has {len(pver_maj_profiles)} profiles, spis has {len(spis_maj_profiles)}.")
+        #
+        # pver_numbers = [_[1]/pver_maj_tot for _ in sorted(pver_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
+        # spis_numbers = [_[1]/spis_maj_tot for _ in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
+        # fig, ax = plt.subplots(nrows=1, ncols=1)
+        # ax.plot(range(len(spis_cum)), spis_cum, 'b--', label='spis')
+        # ax.plot(range(len(pver_cum)), pver_cum, 'r--', label='pver')
+        # ax.legend()
+        # ax.set_ylabel("Cumulative proportion of samples represented")
+        # ax.set_xlabel("Number of ITS2 profiles")
+        # plt.savefig("ITS2.profile.cum.prop.svg")
+        # plt.savefig("ITS2.profile.cum.prop.png", dpi=600)
+        foo = 'bar'
+
         spb = SPBars(
             seq_count_table_path=self.seq_count_table_path,
             profile_count_table_path=self.profile_count_table_path,
