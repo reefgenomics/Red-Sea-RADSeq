@@ -658,19 +658,6 @@ class BuitragoBars(Buitrago):
         self.seq_color_dict = spb.seq_color_dict
         self.profile_color_dict = spb.profile_color_dict
 
-        # if cluster_profiles:
-        #     # Then we need to modify the profile colour dict so that the clustered profiles are the same color.
-        #     # To do this we will simply set the color of the profile in question to the colour of the representative
-        #     # color and then send this into the usual bar plotting function below.
-        #     # We have pickled out the representative dict for each of the species so we can work with this
-        #     # These representative dicts were made during the BuitragoHier_split_species class.
-        #     self.prof_to_rep_dict_pver = pickle.load(open("prof_to_rep_dict_pver.p", "rb"))
-        #     self.prof_to_rep_dict_spis = pickle.load(open("prof_to_rep_dict_spis.p", "rb"))
-        #     for k, v in self.prof_to_rep_dict_spis.items():
-        #         self.profile_color_dict[k] = self.profile_color_dict[v]
-        #     for k, v in self.prof_to_rep_dict_pver.items():
-        #         self.profile_color_dict[k] = self.profile_color_dict[v]
-
         config_tups = [
             ('seq_only', self.seq_color_dict, None, True),
             ('seq_only', self.seq_color_dict, None, False),
