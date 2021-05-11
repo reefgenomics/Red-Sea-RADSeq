@@ -18,9 +18,9 @@ temp$temp_category2=ifelse(temp$Temperature >= 27 & temp$Temperature < 28, "cool
 host=read.table("Input_files/new_host_clusters_April2021.txt", header = T, sep = "\t")
 host$INDIVIDUALS=gsub("-", "_", host$INDIVIDUALS)
 asv_filt=asv[,which(colnames(asv) %in% host$INDIVIDUALS)]
-asv_filt2=remove_rare(asv_filt, 0.025) #30 samples (0.05) -> 679 ASVs, # 15 samples (0.025) -> 1317
-asv_filt2=asv_filt
-asv_number=nrow(asv_filt2)
+#asv_filt2=remove_rare(asv_filt, 0.025) #30 samples (0.05) -> 679 ASVs, # 15 samples (0.025) -> 1317
+#asv_filt2=asv_filt
+asv_number=nrow(asv_filt)
 
 asv.n=as.data.frame(t(sweep(asv_filt2,2,colSums(asv_filt2),`/`)))
 #asv.n=as.data.frame(t(apply(asv_filt2,2, clr)))
