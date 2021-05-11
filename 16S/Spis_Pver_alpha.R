@@ -86,8 +86,8 @@ plot_pver_alpha_reef=ggplot(pver_alpha, aes(x=Reef, y=Shannon, fill=Reef)) +
 
 #temperature
 kruskal.test(pver_alpha$Shannon ~ pver_alpha$Temperature) # Kruskal-Wallis chi-squared = 9.1621, df = 1, p-value = 0.002471
-wilcox_alphaD_pver_reef=pairwise.wilcox.test(pver_alpha$Shannon, pver_alpha$Temperature, p.adj = "fdr")
-#write.table(wilcox_alphaD_pver_reef$p.value,"outputs/pver_wilcox_alphaD_temp.txt", quote = F, sep = "\t")
+wilcox_alphaD_pver_temp=pairwise.wilcox.test(pver_alpha$Shannon, pver_alpha$Temperature, p.adj = "fdr")
+#write.table(wilcox_alphaD_pver_temp$p.value,"outputs/pver_wilcox_alphaD_temp.txt", quote = F, sep = "\t")
 plot_pver_alpha_temp=ggplot(pver_alpha, aes(x=Reef, y=Shannon, fill=Temperature)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
   scale_fill_manual(values=temp_Pal) +  theme_classic() + 
@@ -133,8 +133,8 @@ plot_spis_alpha_reef=ggplot(spis_alpha, aes(x=Reef, y=Shannon, fill=Reef)) +
 
 #temperature
 kruskal.test(spis_alpha$Shannon ~ spis_alpha$Temperature) # Kruskal-Wallis chi-squared = 105.06, df = 17, p-value = 1.017e-14
-wilcox_alphaD_spis_reef=pairwise.wilcox.test(spis_alpha$Shannon, spis_alpha$Temperature, p.adj = "fdr")
-#write.table(wilcox_alphaD_spis_reef$p.value,"outputs/spis_wilcox_alphaD_temp.txt", quote = F, sep = "\t")
+wilcox_alphaD_spis_temp=pairwise.wilcox.test(spis_alpha$Shannon, spis_alpha$Temperature, p.adj = "fdr")
+#write.table(wilcox_alphaD_spis_temp$p.value,"outputs/spis_wilcox_alphaD_temp.txt", quote = F, sep = "\t")
 plot_spis_alpha_temp=ggplot(spis_alpha, aes(x=Reef, y=Shannon, fill=Temperature)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
   scale_fill_manual(values=temp_Pal) +  theme_classic() + 
