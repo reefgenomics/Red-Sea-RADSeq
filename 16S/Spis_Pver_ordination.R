@@ -52,6 +52,7 @@ sty_plot_reef=plot_ordination(sty,sty_ord, color = "Temperature")  + geom_point(
 sty_plot_clust=plot_ordination(sty,sty_ord, color = "PopID")  + geom_point(size = 2, alpha = 1) + theme_bw()  + 
   ggtitle("Stylophora pistillata") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=Spis_Pal) + theme_bw()
 
-pdf("outputs/SpisPver_ordination_popGenClusters_temperature.pdf", width=8,height=7, pointsize = 10)
+pdf("outputs/SpisPver_ordination_popGenClusters_temperature.pdf", width=10, height=7, pointsize = 10)
 (poc_plot_reef+sty_plot_reef)/(poc_plot_clust+sty_plot_clust)
 dev.off() 
+
