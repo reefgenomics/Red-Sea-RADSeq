@@ -35,6 +35,12 @@ alpha$Temperature=temp$temp_category2[match(alpha$Reef,temp$Reef)]
 #specpool(t(asv_filt2), species_pool) # Pocillopora 15,577 and Stylophora 23,736
 
 # colors
+
+Spis_Pal=c("#FE92CD", "#1E90FF","#FF4500","#C71585",  "#FFD700", "#32CD32")
+Pver_Pal=c("#9370DB",  "#00CED1")
+temp_Pal=c("#2E33D1", "#FFEE32","#D37D47", "#F43535")
+
+
 P6=c("#222E50", "#007991", "#BCD8C1", "#E9D985", "#F29469", "#BE3F23") 
 P4=c("#2E33D1", "#FFEE32","#D37D47", "#F43535")
 P20=c("#fad390", "#f6b93b", "#fa983a", "#e58e26", "#f8c291", "#e55039", "#eb2f06", "#b71540", "#6a89cc", "#4a69bd","#1e3799", "#0c2461", "#82ccdd", "#60a3bc", "#3c6382", "#0a3d62", "#b8e994", "#78e08f", "#38ada9", "#079992", "#C0C0C0")
@@ -60,26 +66,40 @@ pver_alpha=subset(alpha, Species == "Pocillopora")
 #cluster
 kruskal.test(pver_alpha$Shannon ~ pver_alpha$PopID) # Kruskal-Wallis chi-squared = 9.1621, df = 1, p-value = 0.002471
 wilcox_alphaD_pver_popid=pairwise.wilcox.test(pver_alpha$Shannon, pver_alpha$PopID, p.adj = "fdr")
-write.table(wilcox_alphaD_pver_popid$p.value,"outputs/pver_wilcox_alphaD_popID.txt", quote = F, sep = "\t")
+#write.table(wilcox_alphaD_pver_popid$p.value,"outputs/pver_wilcox_alphaD_popID.txt", quote = F, sep = "\t")
 plot_pver_alpha_popID=ggplot(pver_alpha, aes(x=PopID, y=Shannon, fill=PopID)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
-  scale_fill_manual(values=P6) +  theme_classic() + 
+  scale_fill_manual(values=Pver_Pal) +  theme_classic() + 
   labs( y= "ASV Shannon diversity", x="", title = "") +
-  annotate(geom="text", x=1.5, y=5.5, label= "Kruskal-Wallis \n p-value = 0.003")
+  annotate(geom="text", x=1, y=5.5, label= "A") + annotate(geom="text", x=2, y=5.5, label= "B") + 
+  guides(fill=guide_legend(title="Host genetic\ncluster"))
 
 #reef
 kruskal.test(pver_alpha$Shannon ~ pver_alpha$Reef) # Kruskal-Wallis chi-squared = 9.1621, df = 1, p-value = 0.002471
 wilcox_alphaD_pver_reef=pairwise.wilcox.test(pver_alpha$Shannon, pver_alpha$Reef, p.adj = "fdr")
-write.table(wilcox_alphaD_pver_reef$p.value,"outputs/pver_wilcox_alphaD_reef.txt", quote = F, sep = "\t")
+#write.table(wilcox_alphaD_pver_reef$p.value,"outputs/pver_wilcox_alphaD_reef.txt", quote = F, sep = "\t")
 plot_pver_alpha_reef=ggplot(pver_alpha, aes(x=Reef, y=Shannon, fill=Reef)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
   scale_fill_manual(values=P20) +  theme_classic() + 
   labs( y= "ASV Shannon diversity", x="", title = "") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-  
-pdf("outputs/Pver_alphaDiversity.pdf", width=10,height=4, pointsize = 10)
-plot_pver_alpha_popID+plot_pver_alpha_reef
-dev.off()
+
+#temperature
+kruskal.test(pver_alpha$Shannon ~ pver_alpha$Temperature) # Kruskal-Wallis chi-squared = 9.1621, df = 1, p-value = 0.002471
+wilcox_alphaD_pver_temp=pairwise.wilcox.test(pver_alpha$Shannon, pver_alpha$Temperature, p.adj = "fdr")
+#write.table(wilcox_alphaD_pver_temp$p.value,"outputs/pver_wilcox_alphaD_temp.txt", quote = F, sep = "\t")
+plot_pver_alpha_temp=ggplot(pver_alpha, aes(x=Reef, y=Shannon, fill=Temperature)) + 
+  stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
+  scale_fill_manual(values=temp_Pal) +  theme_classic() + 
+  labs( y= "ASV Shannon diversity", x="", title = "") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  annotate("segment", x = 1, xend = 2, y = 5.5, yend = 5.5, colour="#2E33D1") + annotate(geom="text", x=1.5, y=5.8, label= "A") +
+  annotate("segment", x = 3, xend = 7, y = 5.5, yend = 5.5, colour="#FFEE32") + annotate(geom="text", x=5, y=5.8, label= "B") + 
+  annotate("segment", x = 8, xend = 10, y = 5.5, yend = 5.5, colour="#D37D47") + annotate(geom="text", x=9, y=5.8, label= "C") +
+  annotate("segment", x = 11, xend = 14, y = 5.5, yend = 5.5, colour="#F43535") + annotate(geom="text", x=12.5, y=5.8, label= "C") 
+#pdf("outputs/Pver_alphaDiversity.pdf", width=10,height=4, pointsize = 10)
+#plot_pver_alpha_popID+plot_pver_alpha_reef
+#dev.off()
 
 # 3. Spis per reef and cluster
 spis_alpha=subset(alpha, Species == "Stylophora")
@@ -87,23 +107,50 @@ spis_alpha=subset(alpha, Species == "Stylophora")
 #cluster
 kruskal.test(spis_alpha$Shannon ~ spis_alpha$PopID) # Kruskal-Wallis chi-squared = 13.645, df = 5, p-value = 0.01803
 wilcox_alphaD_spis_popid=pairwise.wilcox.test(spis_alpha$Shannon, spis_alpha$PopID, p.adj = "fdr")
-write.table(wilcox_alphaD_spis_popid$p.value,"outputs/spis_wilcox_alphaD_popID.txt", quote = F, sep = "\t")
+#write.table(wilcox_alphaD_spis_popid$p.value,"outputs/spis_wilcox_alphaD_popID.txt", quote = F, sep = "\t")
 plot_spis_alpha_popID=ggplot(spis_alpha, aes(x=PopID, y=Shannon, fill=PopID)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
-  scale_fill_manual(values=P6) +  theme_classic() + 
-  labs( y= "ASV Shannon diversity", x="", title = "") 
+  scale_fill_manual(values=Spis_Pal) +  theme_classic() + 
+  labs( y= "ASV Shannon diversity", x="", title = "") + 
+  annotate(geom="text", x=1, y=5.6, label= "A") +
+  annotate(geom="text", x=2, y=5.6, label= "B") +
+  annotate(geom="text", x=3, y=5.6, label= "AB") +
+  annotate(geom="text", x=4, y=5.6, label= "A") +
+  annotate(geom="text", x=5, y=5.6, label= "A") +
+  annotate(geom="text", x=6, y=5.6, label= "A")  + 
+  guides(fill=guide_legend(title="Host genetic\ncluster"))
+  
 
 #reef
 kruskal.test(spis_alpha$Shannon ~ spis_alpha$Reef) # Kruskal-Wallis chi-squared = 105.06, df = 17, p-value = 1.017e-14
 wilcox_alphaD_spis_reef=pairwise.wilcox.test(spis_alpha$Shannon, spis_alpha$Reef, p.adj = "fdr")
-write.table(wilcox_alphaD_spis_reef$p.value,"outputs/spis_wilcox_alphaD_reef.txt", quote = F, sep = "\t")
+#write.table(wilcox_alphaD_spis_reef$p.value,"outputs/spis_wilcox_alphaD_reef.txt", quote = F, sep = "\t")
 plot_spis_alpha_reef=ggplot(spis_alpha, aes(x=Reef, y=Shannon, fill=Reef)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
   scale_fill_manual(values=P20) +  theme_classic() + 
   labs( y= "ASV Shannon diversity", x="", title = "") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-pdf("outputs/spis_alphaDiversity.pdf", width=10,height=4, pointsize = 10)
-plot_spis_alpha_popID+plot_spis_alpha_reef
+#temperature
+kruskal.test(spis_alpha$Shannon ~ spis_alpha$Temperature) # Kruskal-Wallis chi-squared = 105.06, df = 17, p-value = 1.017e-14
+wilcox_alphaD_spis_temp=pairwise.wilcox.test(spis_alpha$Shannon, spis_alpha$Temperature, p.adj = "fdr")
+#write.table(wilcox_alphaD_spis_temp$p.value,"outputs/spis_wilcox_alphaD_temp.txt", quote = F, sep = "\t")
+plot_spis_alpha_temp=ggplot(spis_alpha, aes(x=Reef, y=Shannon, fill=Temperature)) + 
+  stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
+  scale_fill_manual(values=temp_Pal) +  theme_classic() + 
+  labs( y= "ASV Shannon diversity", x="", title = "") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  annotate("segment", x = 1, xend = 2, y = 5.5, yend = 5.5, colour="#2E33D1") + annotate(geom="text", x=1.5, y=5.8, label= "A") +
+  annotate("segment", x = 3, xend = 8, y = 5.5, yend = 5.5, colour="#FFEE32") + annotate(geom="text", x=5.5, y=5.8, label= "B") + 
+  annotate("segment", x = 9, xend = 11, y = 5.5, yend = 5.5, colour="#D37D47") + annotate(geom="text", x=10, y=5.8, label= "B") +
+  annotate("segment", x = 12, xend = 18, y = 5.5, yend = 5.5, colour="#F43535") + annotate(geom="text", x=15, y=5.8, label= "B")
+
+
+#pdf("outputs/spis_alphaDiversity.pdf", width=10,height=4, pointsize = 10)
+#plot_spis_alpha_popID+plot_spis_alpha_reef
+#dev.off()
+
+pdf("outputs/alphaDiversity.pdf", width=10,height=8, pointsize = 10)
+(plot_pver_alpha_popID+plot_pver_alpha_temp)/(plot_spis_alpha_popID+plot_spis_alpha_temp) + plot_annotation(tag_levels = 'A') 
 dev.off()
 
