@@ -631,7 +631,7 @@ class BuitragoHier(Buitrago):
 
 
 class BuitragoBars(Buitrago):
-    def __init__(self, dist_type='bc', cluster_profiles=True):
+    def __init__(self, dist_type='bc', cluster_profiles=False):
         super().__init__(dist_type)
         self.bar_figures_dir = os.path.join(self.root_dir, "bar_figures")
         # self.fig = plt.figure(figsize=self._mm2inch((200, 320)))
@@ -707,8 +707,8 @@ class BuitragoBars(Buitrago):
         # ax.legend()
         # ax.set_ylabel("Cumulative proportion of samples represented")
         # ax.set_xlabel("Number of ITS2 profiles")
-        # plt.savefig("ITS2.profile.cum.prop.svg")
-        # plt.savefig("ITS2.profile.cum.prop.png", dpi=600)
+        # plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.svg")
+        # plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.png", dpi=600)
         foo = 'bar'
 
         spb = SPBars(
