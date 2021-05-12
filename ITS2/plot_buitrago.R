@@ -87,7 +87,7 @@ spis.plot.region = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, co
 spis.plot.gen_cluster = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="GEN_CLUSTER") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("SPIS.GEN_CLUSTER.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=Spis_Pal)
 spis.plot.temp = plot_ordination(physeq=phyloseq.spis, ordination=spis.ord, color="tempf") + geom_point(size = 2, alpha = 1) + theme_bw() + ggtitle("SPIS.temp.ITS2") + theme(plot.title = element_text(hjust = 0.5)) + scale_colour_manual(values=temp.col)
 
-pdf("plots/ordinations.temp.gencluster.ITS2.pdf", width=14, height=10, pointsize = 10)
+pdf("plots/ordinations.temp.gencluster.ITS2.pdf", width=10, height=7, pointsize = 10)
 gridExtra::grid.arrange(pver.plot.temp, spis.plot.temp, pver.plot.gen_cluster, spis.plot.gen_cluster, ncol=2, nrow=2)
 dev.off()
 detach("package:microbiome", unload=TRUE)
