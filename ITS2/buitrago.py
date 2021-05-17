@@ -18,6 +18,7 @@ from collections import defaultdict
 import re
 import itertools
 import pickle
+import skbio
 
 class Buitrago:
     """
@@ -631,7 +632,7 @@ class BuitragoHier(Buitrago):
 
 
 class BuitragoBars(Buitrago):
-    def __init__(self, dist_type='bc', cluster_profiles=False):
+    def __init__(self, dist_type='bc', cluster_profiles=True):
         super().__init__(dist_type)
         self.bar_figures_dir = os.path.join(self.root_dir, "bar_figures")
         # self.fig = plt.figure(figsize=self._mm2inch((200, 320)))
@@ -647,9 +648,6 @@ class BuitragoBars(Buitrago):
             self.titles = ['pver_genera', 'pver_seq', 'pver_profile', 'spis_genera', 'spis_seq', 'spis_profile']
 
 
-
-
-
         # create an instance of SPBars just to generate a seq and profile dict for the whole dataset
         # then use this dictionary for plotting the actual plots.
         if cluster_profiles:
@@ -657,58 +655,63 @@ class BuitragoBars(Buitrago):
 
         # We want to work out the number of profiles before and after clustering in spis and pver samples
         # This code works. Just uncomment to do the plotting.
-        # prof_count_df = pd.read_table(self.profile_count_table_path)
-        # prof_count_df = prof_count_df.iloc[6:,]
-        # cols = list(prof_count_df)
-        # cols[1] = "sample_name"
-        # prof_count_df.columns = cols
-        # prof_count_df = prof_count_df.set_index("sample_name")
-        # prof_count_df = prof_count_df.iloc[:-2,1:].astype(float).astype(int)
-        # pver_profiles = set()
-        # pver_maj_profiles = defaultdict(int)
-        # for sample in self.pver_df.index:
-        #     ser = prof_count_df.loc[sample]
-        #     pver_maj_profiles[ser.idxmax()] += 1
-        #     non_zero_profiles = list(ser[ser!=0].index)
-        #     pver_profiles.update(non_zero_profiles)
-        # pver_maj_tot = sum(pver_maj_profiles.values())
-        # tot = 0
-        # pver_cum = [0]
-        # for k, v in sorted(pver_maj_profiles.items(), key=lambda x:x[1], reverse=True):
-        #     tot += v
-        #     print(f"{k}:{tot/pver_maj_tot}")
-        #     pver_cum.append(tot/pver_maj_tot)
-        # print("\n\n\n")
-        #
-        # spis_profiles = set()
-        # spis_maj_profiles = defaultdict(int)
-        # for sample in self.spis_df.index:
-        #     ser = prof_count_df.loc[sample]
-        #     spis_maj_profiles[ser.idxmax()] += 1
-        #     non_zero_profiles = list(ser[ser != 0].index)
-        #     spis_profiles.update(non_zero_profiles)
-        #
-        # spis_maj_tot = sum(spis_maj_profiles.values())
-        # tot = 0
-        # spis_cum = [0]
-        # for k, v in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True):
-        #     tot += v
-        #     print(f"{k}:{tot/spis_maj_tot}")
-        #     spis_cum.append(tot/spis_maj_tot)
-        # print("\n\n\n")
-        # print(f"When clustering is {cluster_profiles}; pver has {len(pver_profiles)} profiles, spis has {len(spis_profiles)}.")
-        # print(f"\tOr when considering only most abundant profiles; pver has {len(pver_maj_profiles)} profiles, spis has {len(spis_maj_profiles)}.")
-        #
-        # pver_numbers = [_[1]/pver_maj_tot for _ in sorted(pver_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
-        # spis_numbers = [_[1]/spis_maj_tot for _ in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
-        # fig, ax = plt.subplots(nrows=1, ncols=1)
-        # ax.plot(range(len(spis_cum)), spis_cum, 'b--', label='spis')
-        # ax.plot(range(len(pver_cum)), pver_cum, 'r--', label='pver')
-        # ax.legend()
-        # ax.set_ylabel("Cumulative proportion of samples represented")
-        # ax.set_xlabel("Number of ITS2 profiles")
-        # plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.svg")
-        # plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.png", dpi=600)
+        prof_count_df = pd.read_table(self.profile_count_table_path)
+        prof_count_df = prof_count_df.iloc[6:,]
+        cols = list(prof_count_df)
+        cols[1] = "sample_name"
+        prof_count_df.columns = cols
+        prof_count_df = prof_count_df.set_index("sample_name")
+        prof_count_df = prof_count_df.iloc[:-2,1:].astype(float).astype(int)
+        pver_profiles = set()
+        pver_maj_profiles = defaultdict(int)
+        for sample in self.pver_df.index:
+            ser = prof_count_df.loc[sample]
+            pver_maj_profiles[ser.idxmax()] += 1
+            non_zero_profiles = list(ser[ser!=0].index)
+            pver_profiles.update(non_zero_profiles)
+        pver_maj_tot = sum(pver_maj_profiles.values())
+        tot = 0
+        pver_cum = [0]
+        for k, v in sorted(pver_maj_profiles.items(), key=lambda x:x[1], reverse=True):
+            tot += v
+            print(f"{k}:{tot/pver_maj_tot}")
+            pver_cum.append(tot/pver_maj_tot)
+        print("\n\n\n")
+
+        spis_profiles = set()
+        spis_maj_profiles = defaultdict(int)
+        for sample in self.spis_df.index:
+            ser = prof_count_df.loc[sample]
+            spis_maj_profiles[ser.idxmax()] += 1
+            non_zero_profiles = list(ser[ser != 0].index)
+            spis_profiles.update(non_zero_profiles)
+
+        spis_maj_tot = sum(spis_maj_profiles.values())
+        tot = 0
+        spis_cum = [0]
+        for k, v in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True):
+            tot += v
+            print(f"{k}:{tot/spis_maj_tot}")
+            spis_cum.append(tot/spis_maj_tot)
+        print("\n\n\n")
+        print(f"When clustering is {cluster_profiles}; pver has {len(pver_profiles)} profiles, spis has {len(spis_profiles)}.")
+        print(f"\tOr when considering only most abundant profiles; pver has {len(pver_maj_profiles)} profiles, spis has {len(spis_maj_profiles)}.")
+
+        # simpsons index = 0.054
+        skbio.diversity.alpha_diversity(metric="dominance", counts=list(spis_maj_profiles.values()))
+        # simpsons index = 0.477
+        skbio.diversity.alpha_diversity(metric="dominance", counts=list(pver_maj_profiles.values()))
+
+        pver_numbers = [_[1]/pver_maj_tot for _ in sorted(pver_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
+        spis_numbers = [_[1]/spis_maj_tot for _ in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        ax.plot(range(len(spis_cum)), spis_cum, 'b--', label='spis')
+        ax.plot(range(len(pver_cum)), pver_cum, 'r--', label='pver')
+        ax.legend()
+        ax.set_ylabel("Cumulative proportion of samples represented")
+        ax.set_xlabel("Number of ITS2 profiles")
+        plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.svg")
+        plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.png", dpi=600)
         foo = 'bar'
 
         spb = SPBars(
@@ -783,6 +786,369 @@ class BuitragoBars(Buitrago):
                 plt.close(fig)
                 foo = "bar"
 
+class BuitragoBars_clustered_profiles(Buitrago):
+    def __init__(self, dist_type='bc', cluster_profiles=True):
+        super().__init__(dist_type)
+        self.bar_figures_dir = os.path.join(self.root_dir, "bar_figures")
+        # self.fig = plt.figure(figsize=self._mm2inch((200, 320)))
+        # bars to legends at ratio of 4:1
+        gs = gridspec.GridSpec(nrows=4, ncols=6)
+        # Then we need to look at ordinations and hierarchical clustering and annotating according to the site
+        # and reef.
+        # There will be 6 axes for plotting and 3 legend axes
+        # 2 sets of 3 one for each
+        if cluster_profiles:
+            self.titles = ['pver_genera', 'pver_seq', 'pver_profile_clustered', 'spis_genera', 'spis_seq', 'spis_profile_clustered']
+        else:
+            self.titles = ['pver_genera', 'pver_seq', 'pver_profile', 'spis_genera', 'spis_seq', 'spis_profile']
+
+
+        # Use the clustered profiles
+        self.profile_count_table_path = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.clustered.tsv"
+
+        # We want to work out the number of profiles before and after clustering in spis and pver samples
+        # This code works. Just uncomment to do the plotting.
+        prof_count_df = pd.read_table(self.profile_count_table_path)
+        prof_count_df = prof_count_df.iloc[6:,]
+        cols = list(prof_count_df)
+        cols[1] = "sample_name"
+        prof_count_df.columns = cols
+        prof_count_df = prof_count_df.set_index("sample_name")
+        prof_count_df = prof_count_df.iloc[:-2,1:].astype(float).astype(int)
+        pver_profiles = set()
+        pver_maj_profiles = defaultdict(int)
+
+        # Work out the number of samples with one profile
+        pver_prof_df = prof_count_df.loc[self.pver_df.index, :]
+        pver_one_profile_sample = []
+        for ind, ser in pver_prof_df.iterrows():
+            ser_non_zero = ser[ser!=0]
+            if len(ser_non_zero) == 1:
+                pver_one_profile_sample.append(ind)
+        # Proportion of samples
+        pver_one_prof_prop = len(pver_one_profile_sample) / len(pver_prof_df.index)
+        print(f"The proportion of samples with a single profile in pver is {pver_one_prof_prop}")
+
+        spis_prof_df = prof_count_df.loc[self.spis_df.index, :]
+        spis_one_profile_sample = []
+        for ind, ser in spis_prof_df.iterrows():
+            ser_non_zero = ser[ser != 0]
+            if len(ser_non_zero) == 1:
+                spis_one_profile_sample.append(ind)
+        # Proportion of samples
+        spis_one_prof_prop = len(spis_one_profile_sample) / len(spis_prof_df.index)
+        print(f"The proportion of samples with a single profile in spis is {spis_one_prof_prop}")
+
+
+        # Then work this out for only those samples from MAQ
+        pver_prof_df_MAQ = prof_count_df.loc[[_ for _ in self.pver_df.index if "MAQ" in _], :]
+        pver__more_than_one_profile_sample = []
+        for ind, ser in pver_prof_df_MAQ.iterrows():
+            ser_non_zero = ser[ser != 0]
+            if len(ser_non_zero) > 1:
+                pver__more_than_one_profile_sample.append(ind)
+        # Proportion of samples
+        pver_more_than_one_prof_prop = len(pver__more_than_one_profile_sample) / len([_ for _ in self.pver_df.index if "MAQ" in _])
+        print(f"The proportion of samples with more than a single profile in pver is {pver_more_than_one_prof_prop}")
+
+        spis_prof_df_MAQ = prof_count_df.loc[[_ for _ in self.spis_df.index if "MAQ" in _], :]
+        spis__more_than_one_profile_sample = []
+        for ind, ser in spis_prof_df_MAQ.iterrows():
+            ser_non_zero = ser[ser != 0]
+            if len(ser_non_zero) == 1:
+                spis__more_than_one_profile_sample.append(ind)
+        # Proportion of samples
+        spis_more_than_one_prof_prop = len(spis__more_than_one_profile_sample) / len([_ for _ in self.spis_df.index if "MAQ" in _])
+        print(f"The proportion of samples with a single profile in spis is {spis_more_than_one_prof_prop}")
+
+        foo = "bar"
+
+        for sample in self.pver_df.index:
+            ser = prof_count_df.loc[sample]
+            pver_maj_profiles[ser.idxmax()] += 1
+            non_zero_profiles = list(ser[ser!=0].index)
+            pver_profiles.update(non_zero_profiles)
+        pver_maj_tot = sum(pver_maj_profiles.values())
+        tot = 0
+        pver_cum = [0]
+        for k, v in sorted(pver_maj_profiles.items(), key=lambda x:x[1], reverse=True):
+            tot += v
+            print(f"{k}:{tot/pver_maj_tot}")
+            pver_cum.append(tot/pver_maj_tot)
+        print("\n\n\n")
+
+        spis_profiles = set()
+        spis_maj_profiles = defaultdict(int)
+        for sample in self.spis_df.index:
+            ser = prof_count_df.loc[sample]
+            spis_maj_profiles[ser.idxmax()] += 1
+            non_zero_profiles = list(ser[ser != 0].index)
+            spis_profiles.update(non_zero_profiles)
+
+        spis_maj_tot = sum(spis_maj_profiles.values())
+        tot = 0
+        spis_cum = [0]
+        for k, v in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True):
+            tot += v
+            print(f"{k}:{tot/spis_maj_tot}")
+            spis_cum.append(tot/spis_maj_tot)
+        print("\n\n\n")
+        print(f"When clustering is {cluster_profiles}; pver has {len(pver_profiles)} profiles, spis has {len(spis_profiles)}.")
+        print(f"\tOr when considering only most abundant profiles; pver has {len(pver_maj_profiles)} profiles, spis has {len(spis_maj_profiles)}.")
+
+        # simpsons index = 0.054
+        skbio.diversity.alpha_diversity(metric="dominance", counts=list(spis_maj_profiles.values()))
+        # simpsons index = 0.477
+        skbio.diversity.alpha_diversity(metric="dominance", counts=list(pver_maj_profiles.values()))
+
+        pver_numbers = [_[1]/pver_maj_tot for _ in sorted(pver_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
+        spis_numbers = [_[1]/spis_maj_tot for _ in sorted(spis_maj_profiles.items(), key=lambda x: x[1], reverse=True)]
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        ax.plot(range(len(spis_cum)), spis_cum, 'b--', label='spis')
+        ax.plot(range(len(pver_cum)), pver_cum, 'r--', label='pver')
+        ax.legend()
+        ax.set_ylabel("Cumulative proportion of samples represented")
+        ax.set_xlabel("Number of ITS2 profiles")
+        plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.svg")
+        plt.savefig(f"ITS2.profile.cumul.prop.clustering.{cluster_profiles}.png", dpi=600)
+        foo = 'bar'
+
+        spb = SPBars(
+            seq_count_table_path=self.seq_count_table_path,
+            profile_count_table_path=self.profile_count_table_path,
+            plot_type='seq_and_profile', orientation='v', legend=False, relative_abundance=True, no_plotting=True, num_profile_leg_cols=67
+        )
+
+        # TODO we want to know what proportion of the profiles for each species were Symbiodinium and Cladocopium
+        pver_prof_num_dict = defaultdict(int)
+        for ind, ser in pver_prof_df.iterrows():
+            prof_uids = list(ser[ser!=0].index)
+            prof_names = [spb.profile_uid_to_profile_name_dict[prof_uid] for prof_uid in prof_uids]
+            for prof_name in prof_names:
+                if prof_name.startswith("A"):
+                    pver_prof_num_dict["A"] += 1
+                elif prof_name.startswith("C"):
+                    pver_prof_num_dict["C"] += 1
+                else:
+                    pver_prof_num_dict["other"] += 1
+        a_prop = pver_prof_num_dict["A"]/ sum(pver_prof_num_dict.values())
+        c_prop = pver_prof_num_dict["C"] / sum(pver_prof_num_dict.values())
+        print(f"{a_prop} of the detected profiles instances in pver were Symbiodinium")
+        print(f"{c_prop} of the detected profiles instances in pver were Cladocopium")
+
+        spis_prof_num_dict = defaultdict(int)
+        for ind, ser in spis_prof_df.iterrows():
+            prof_uids = list(ser[ser != 0].index)
+            prof_names = [spb.profile_uid_to_profile_name_dict[prof_uid] for prof_uid in prof_uids]
+            for prof_name in prof_names:
+                if prof_name.startswith("A"):
+                    spis_prof_num_dict["A"] += 1
+                elif prof_name.startswith("C"):
+                    spis_prof_num_dict["C"] += 1
+                else:
+                    spis_prof_num_dict["other"] += 1
+        spisa_prop = spis_prof_num_dict["A"] / sum(spis_prof_num_dict.values())
+        spisc_prop = spis_prof_num_dict["C"] / sum(spis_prof_num_dict.values())
+        print(f"{spisa_prop} of the detected profiles instances in spis were Symbiodinium")
+        print(f"{spisc_prop} of the detected profiles instances in spis were Cladocopium")
+
+        foo = "bar"
+        self.seq_color_dict = spb.seq_color_dict
+        self.profile_color_dict = spb.profile_color_dict
+        fig, ax_arr = plt.subplots(ncols=4, nrows=1, figsize=self._mm2inch((400, 320)))
+        if os.path.exists("profile_color_dict.no_gen.p"):
+            self.profile_color_dict = pickle.load(open("profile_color_dict.no_gen.p", "rb"))
+        # # Now we can plot up each of the axes
+        # # Reverse the dfs so that we are plotting top to bottom
+        pver_rev_df = self.pver_df.iloc[::-1]
+        spis_rev_df = self.spis_df.iloc[::-1]
+        for i, (df, species, ax) in enumerate(zip([pver_rev_df, spis_rev_df], ["pver", "spis"], [(ax_arr[0], ax_arr[1]), (ax_arr[2], ax_arr[3])])):
+
+            sp_bars = SPBars(
+                seq_count_table_path=self.seq_count_table_path,
+                profile_count_table_path=self.profile_count_table_path,
+                plot_type="profile_only", orientation='v', legend=True, relative_abundance=True,
+                sample_outline=False, sample_names_included=df.index.values,
+                bar_ax=ax[0], profile_leg_ax=ax[1],
+                profile_color_dict=self.profile_color_dict, num_profile_leg_cols=67
+            )
+            sp_bars.plot()
+
+            # Now annotate and save the figure
+            ax[0].set_xticks([])
+            ax[0].set_yticks([])
+            ax[0].set_title(f"clustered_profiles_{species}", fontsize='small')
+            # Need to add a black line for each of the reef borders
+            reef = df.iloc[0]["reef"]
+            lines = []
+            line_colors = []
+            line_widths = []
+            for k, ind in enumerate(df.index.values):
+                new_reef = df.at[ind, "reef"]
+                if new_reef != reef:
+                    reef = new_reef
+                    # Then we need to plot a black line at k - 0.5
+                    lines.append(k - 0.5)
+                    line_colors.append("black")
+                    line_widths.append(2)
+            ax[0].hlines(y=lines, xmin=0, xmax=1, colors=line_colors, linewidths=line_widths)
+        plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles.bars.svg"))
+        plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles.bars.pdf"))
+        plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles.bars.png", ), dpi=600)
+        plt.close(fig)
+        # output a good profile colour dict so that we can work with it again
+        if not os.path.exists("profile_color_dict.no_gen.p"):
+            pickle.dump(self.profile_color_dict, open("profile_color_dict.no_gen.p", "wb"))
+
+        plt.close()
+
+
+        # Plot up the genera
+        fig, ax_arr = plt.subplots(ncols=4, nrows=1, figsize=self._mm2inch((400, 320)))
+        for i, (df, species, ax) in enumerate(zip([pver_rev_df, spis_rev_df], ["pver", "spis"], [(ax_arr[0], ax_arr[1]), (ax_arr[2], ax_arr[3])])):
+
+            sp_bars = SPBars(
+                seq_count_table_path=self.seq_count_table_path,
+                profile_count_table_path=self.profile_count_table_path,
+                plot_type="seq_only", orientation='v', legend=True, relative_abundance=True, color_by_genus=True,
+                sample_outline=False, sample_names_included=df.index.values,
+                bar_ax=ax[0], genera_leg_ax=ax[1],
+                profile_color_dict=self.profile_color_dict, num_profile_leg_cols=67
+            )
+            sp_bars.plot()
+
+            # Now annotate and save the figure
+            ax[0].set_xticks([])
+            ax[0].set_yticks([])
+            ax[0].set_title(f"genera_{species}", fontsize='small')
+            # Need to add a black line for each of the reef borders
+            reef = df.iloc[0]["reef"]
+            lines = []
+            line_colors = []
+            line_widths = []
+            for k, ind in enumerate(df.index.values):
+                new_reef = df.at[ind, "reef"]
+                if new_reef != reef:
+                    reef = new_reef
+                    # Then we need to plot a black line at k - 0.5
+                    lines.append(k - 0.5)
+                    line_colors.append("black")
+                    line_widths.append(2)
+            ax[0].hlines(y=lines, xmin=0, xmax=1, colors=line_colors, linewidths=line_widths)
+        plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles_genera.bars.svg"))
+        plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles_genera.bars.pdf"))
+        plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles_genera.bars.png", ), dpi=600)
+        plt.close(fig)
+        foo = "bar"
+
+class CalculateAverageProfDistances(Buitrago):
+    """ A class dedicated to calculating the average profile nearest neighbour distance"""
+    def __init__(self):
+        super().__init__("bc")
+        dist_path_A = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/sp_output/between_profile_distances/A/20201207T095144_braycurtis_profile_distances_A_sqrt.dist"
+        dist_path_C = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/sp_output/between_profile_distances/C/20201207T095144_braycurtis_profile_distances_C_sqrt.dist"
+        dist_path_D = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/sp_output/between_profile_distances/D/20201207T095144_braycurtis_profile_distances_D_sqrt.dist"
+
+        profile_count_table_path = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/sp_output/its2_type_profiles/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.txt"
+
+        # We want to work out the number of profiles before and after clustering in spis and pver samples
+        prof_count_df = pd.read_table(profile_count_table_path)
+        profile_uid_to_profile_name_dict = {int(uid): name for uid, name in zip(list(prof_count_df)[2:], list(prof_count_df.iloc[5,2:].values))}
+        prof_count_df = prof_count_df.iloc[6:, ]
+        cols = list(prof_count_df)
+        cols[1] = "sample_name"
+        prof_count_df.columns = cols
+        prof_count_df = prof_count_df.set_index("sample_name")
+        prof_count_df = prof_count_df.iloc[:-2, 1:].astype(float).astype(int)
+        prof_count_df.columns = [int(_) for _ in list(prof_count_df)]
+
+        sym_dist_df_A = pd.read_table(dist_path_A, header=None)
+        sym_dist_df_A.index = sym_dist_df_A[1]
+        sym_dist_df_A = sym_dist_df_A.iloc[:,2:]
+        sym_dist_df_A.columns = sym_dist_df_A.index.values
+
+        sym_dist_df_C = pd.read_table(dist_path_C, header=None)
+        sym_dist_df_C.index = sym_dist_df_C[1]
+        sym_dist_df_C = sym_dist_df_C.iloc[:, 2:]
+        sym_dist_df_C.columns = sym_dist_df_C.index.values
+
+        sym_dist_df_D = pd.read_table(dist_path_D, header=None)
+        sym_dist_df_D.index = sym_dist_df_D[1]
+        sym_dist_df_D = sym_dist_df_D.iloc[:, 2:]
+        sym_dist_df_D.columns = sym_dist_df_D.index.values
+
+        # create a dictionary that holds the distance to the nearest profile for every profile
+        profile_uid_to_nearest_profile_dist_dict = {}
+        for prof_uid, ser in sym_dist_df_A.iterrows():
+            nearest_match_uid = sorted(ser.items(), key=lambda x: x[1])[1][0]
+            # Get the number of divs in common
+            match_name = profile_uid_to_profile_name_dict[nearest_match_uid]
+            our_name = profile_uid_to_profile_name_dict[prof_uid]
+            match_divs = set(filter(None, re.split("[/\-]+", match_name)))
+            ours_divs = set(filter(None, re.split("[/\-]+", our_name)))
+            profile_uid_to_nearest_profile_dist_dict[prof_uid] = len(match_divs.intersection(ours_divs))
+
+
+        for prof_uid, ser in sym_dist_df_C.iterrows():
+            nearest_match_uid = sorted(ser.items(), key=lambda x: x[1])[1][0]
+            # Get the number of divs in common
+            match_name = profile_uid_to_profile_name_dict[nearest_match_uid]
+            our_name = profile_uid_to_profile_name_dict[prof_uid]
+            match_divs = set(filter(None, re.split("[/\-]+", match_name)))
+            ours_divs = set(filter(None, re.split("[/\-]+", our_name)))
+            profile_uid_to_nearest_profile_dist_dict[prof_uid] = len(match_divs.intersection(ours_divs))
+        for prof_uid, ser in sym_dist_df_D.iterrows():
+            nearest_match_uid = sorted(ser.items(), key=lambda x: x[1])[1][0]
+            # Get the number of divs in common
+            match_name = profile_uid_to_profile_name_dict[nearest_match_uid]
+            our_name = profile_uid_to_profile_name_dict[prof_uid]
+            match_divs = set(filter(None, re.split("[/\-]+", match_name)))
+            ours_divs = set(filter(None, re.split("[/\-]+", our_name)))
+            profile_uid_to_nearest_profile_dist_dict[prof_uid] = len(match_divs.intersection(ours_divs))
+
+        pver_instance_list = []
+        for sample in self.pver_df.index:
+            ser = prof_count_df.loc[sample]
+            # if profile_uid_to_profile_name_dict[ser.idxmax()].startswith("A"):
+            #     pver_instance_list.append(ser.idxmax())
+            # else:
+            #     continue
+            uid_list = [_ for _ in ser[ser!=0].index]
+            pver_instance_list += uid_list
+
+        pver_distances = []
+        # Here instead of doing pairwise distance, we want to find the closest profile and log that distance
+        for prof_uid in pver_instance_list:
+            pver_distances.append(profile_uid_to_nearest_profile_dist_dict[prof_uid])
+        # now the average
+        pver_av_profile_instance_dist = sum(pver_distances)/len(pver_distances)
+
+        spis_instance_list = []
+        for sample in self.spis_df.index:
+            ser = prof_count_df.loc[sample]
+            # We can do this for all clades now
+            # if profile_uid_to_profile_name_dict[ser.idxmax()].startswith("A"):
+            #     pver_instance_list.append(ser.idxmax())
+            # else:
+            #     continue
+            uid_list = [_ for _ in ser[ser!=0].index]
+            spis_instance_list += uid_list
+
+        spis_distances = []
+        err_count = 0
+        # Here instead of doing pairwise distance, we want to find the closest profile and log that distance
+        for prof_uid in spis_instance_list:
+            try:
+                spis_distances.append(profile_uid_to_nearest_profile_dist_dict[prof_uid])
+            except KeyError:
+                err_count += 1
+                continue
+
+        # now the average
+        spis_av_profile_instance_dist = sum(spis_distances) / len(spis_distances)
+        foo = "bar"
+
+
 
 # For plotting the ordinations
 # BuitragoOrdinations(dist_type='uf')
@@ -793,4 +1159,9 @@ class BuitragoBars(Buitrago):
 # BuitragoHier_split_species(dist_type='bc')
 
 # For plotting the north to south genera, sequence, and profile bars for each species
-BuitragoBars()
+# BuitragoBars()
+
+# A modification of the original BuitragoBars to do custom colours of the clustered profiles plot
+# BuitragoBars_clustered_profiles()
+
+CalculateAverageProfDistances()
