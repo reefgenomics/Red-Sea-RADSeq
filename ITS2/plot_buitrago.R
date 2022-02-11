@@ -4,9 +4,9 @@ library(patchwork)
 library(gridExtra)
 
 # Plot up ordinations
-pver.gentype.path <- "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/pver.genclust.strata.K2.csv"
-spis.gentype.path <- "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/spis.genclust.strata.K6.csv"
-symportal.post.med.count.table.path <- "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt"
+pver.gentype.path <- "pver.genclust.strata.K2.csv"
+spis.gentype.path <- "spis.genclust.strata.K6.csv"
+symportal.post.med.count.table.path <- "sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt"
 reef.temp.df = read.csv("reef_temp.csv")
 rownames(reef.temp.df) = reef.temp.df$reef
 colnames(reef.temp.df)[1] = "REEF"

@@ -33,7 +33,7 @@ class Buitrago:
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.plotting_dir = os.path.join(self.root_dir, "plots")
 
-        # Count table relative paths
+        # Absolute abundance count table paths
         self.seq_count_table_path = os.path.join(self.root_dir,
                                                  'sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt')
         self.profile_count_table_path = os.path.join(self.root_dir,
@@ -46,12 +46,6 @@ class Buitrago:
 
         self.all_samples_df = pd.concat([self.pver_df, self.spis_df])
         self.sample_names = list(self.all_samples_df.index.values)
-
-        # Count table relative paths
-        self.seq_count_table_path = os.path.join(self.root_dir,
-                                                 'sp_output/post_med_seqs/131_20201203_DBV_20201207T095144.seqs.absolute.abund_and_meta.txt')
-        self.profile_count_table_path = os.path.join(self.root_dir,
-                                                     'sp_output/its2_type_profiles/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.txt')
 
         # Color dictionaries
         self.regions = ['MAQ', 'WAJ', 'YAN', 'KAU', 'DOG', 'FAR']
@@ -115,8 +109,10 @@ class Buitrago:
         else:
             return tuple(i / inch for i in tupl)
 
+
 class BuitragoOrdinations(Buitrago):
-    """Plot PCoA ordinations"""
+    """Plot PCoA ordinations. In the end this code was not used and rather the plots were made in R so that they were compatible
+    with the 16S plots. See script plot_buitrago.R"""
     # We have the list of Symbiodinium samples that also have related host sample data
     # read in the pcoA coords and keep only the samples that are in
     def __init__(self, dist_type='bc'):
@@ -216,7 +212,6 @@ class BuitragoOrdinations(Buitrago):
             ax.set_ylim(y_min, y_max)
             ax.set_aspect('equal', 'box')
             return
-
 
 class BuitragoHier_split_species(Buitrago):
     """
@@ -630,7 +625,6 @@ class BuitragoHier(Buitrago):
         ax.set_yticks([])
         ax.set_ylabel(meta, rotation='vertical', fontsize='xx-small')
 
-
 class BuitragoBars(Buitrago):
     def __init__(self, dist_type='bc', cluster_profiles=True):
         super().__init__(dist_type)
@@ -804,6 +798,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
 
 
         # Use the clustered profiles
+        # This file was created manually using Excel.
         self.profile_count_table_path = "/Users/benjaminhume/Documents/projects/20210113_buitrago/ITS2/131_20201203_DBV_20201207T095144.profiles.absolute.abund_and_meta.clustered.tsv"
 
         # We want to work out the number of profiles before and after clustering in spis and pver samples
@@ -825,6 +820,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
             ser_non_zero = ser[ser!=0]
             if len(ser_non_zero) == 1:
                 pver_one_profile_sample.append(ind)
+        
         # Proportion of samples
         pver_one_prof_prop = len(pver_one_profile_sample) / len(pver_prof_df.index)
         print(f"The proportion of samples with a single profile in pver is {pver_one_prof_prop}")
@@ -835,10 +831,10 @@ class BuitragoBars_clustered_profiles(Buitrago):
             ser_non_zero = ser[ser != 0]
             if len(ser_non_zero) == 1:
                 spis_one_profile_sample.append(ind)
+        
         # Proportion of samples
         spis_one_prof_prop = len(spis_one_profile_sample) / len(spis_prof_df.index)
         print(f"The proportion of samples with a single profile in spis is {spis_one_prof_prop}")
-
 
         # Then work this out for only those samples from MAQ
         pver_prof_df_MAQ = prof_count_df.loc[[_ for _ in self.pver_df.index if "MAQ" in _], :]
@@ -847,6 +843,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
             ser_non_zero = ser[ser != 0]
             if len(ser_non_zero) > 1:
                 pver__more_than_one_profile_sample.append(ind)
+        
         # Proportion of samples
         pver_more_than_one_prof_prop = len(pver__more_than_one_profile_sample) / len([_ for _ in self.pver_df.index if "MAQ" in _])
         print(f"The proportion of samples with more than a single profile in pver is {pver_more_than_one_prof_prop}")
@@ -857,6 +854,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
             ser_non_zero = ser[ser != 0]
             if len(ser_non_zero) == 1:
                 spis__more_than_one_profile_sample.append(ind)
+        
         # Proportion of samples
         spis_more_than_one_prof_prop = len(spis__more_than_one_profile_sample) / len([_ for _ in self.spis_df.index if "MAQ" in _])
         print(f"The proportion of samples with a single profile in spis is {spis_more_than_one_prof_prop}")
@@ -919,7 +917,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
             plot_type='seq_and_profile', orientation='v', legend=False, relative_abundance=True, no_plotting=True, num_profile_leg_cols=67
         )
 
-        # TODO we want to know what proportion of the profiles for each species were Symbiodinium and Cladocopium
+        # we want to know what proportion of the profiles for each species were Symbiodinium and Cladocopium
         pver_prof_num_dict = defaultdict(int)
         for ind, ser in pver_prof_df.iterrows():
             prof_uids = list(ser[ser!=0].index)
@@ -958,6 +956,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
         fig, ax_arr = plt.subplots(ncols=4, nrows=1, figsize=self._mm2inch((400, 320)))
         if os.path.exists("profile_color_dict.no_gen.p"):
             self.profile_color_dict = pickle.load(open("profile_color_dict.no_gen.p", "rb"))
+        
         # # Now we can plot up each of the axes
         # # Reverse the dfs so that we are plotting top to bottom
         pver_rev_df = self.pver_df.iloc[::-1]
@@ -996,6 +995,7 @@ class BuitragoBars_clustered_profiles(Buitrago):
         plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles.bars.pdf"))
         plt.savefig(os.path.join(self.plotting_dir, f"clustered_profiles.bars.png", ), dpi=600)
         plt.close(fig)
+        
         # output a good profile colour dict so that we can work with it again
         if not os.path.exists("profile_color_dict.no_gen.p"):
             pickle.dump(self.profile_color_dict, open("profile_color_dict.no_gen.p", "wb"))
@@ -1151,7 +1151,7 @@ class CalculateAverageProfDistances(Buitrago):
 
 
 # For plotting the ordinations
-# BuitragoOrdinations(dist_type='uf')
+# BuitragoOrdinations(dist_type='bc')
 
 # For plotting the dendrogram figure with associated meta info and sequences
 # BuitragoHier(dist_type='bc')
@@ -1162,6 +1162,6 @@ class CalculateAverageProfDistances(Buitrago):
 # BuitragoBars()
 
 # A modification of the original BuitragoBars to do custom colours of the clustered profiles plot
-# BuitragoBars_clustered_profiles()
+BuitragoBars_clustered_profiles()
 
 CalculateAverageProfDistances()
