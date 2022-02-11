@@ -4,7 +4,7 @@
 This directory contains the scripts used to produce figures and run analyses for the ITS2 data.
 
 Input files required for the scripts are detailed below. If the files are not present in this repo. please
-check the 
+check the associated MS.
 
 # Bar figure plotting and general stats
 
