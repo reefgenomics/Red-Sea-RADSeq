@@ -1,7 +1,7 @@
 
-# Buitrago et al., 2022 16S analyses
+# Buitrago et al., 2022 16S rRNA amplicon data analysis
 
-This directory contains the scripts used to produce figures and run analyses for the 16S data.
+This directory contains the scripts used to produce figures and run analyses for the 16S rRNA data.
 
 ## Workflow
 
