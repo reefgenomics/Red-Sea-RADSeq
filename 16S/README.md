@@ -8,7 +8,7 @@ This directory contains the scripts used to produce figures and run analyses for
 ### inference of ASV, QCs and plotting overall bacterial diversity 
 
 1. Amplicon Sequence variance (ASV) were inferred using [dada2](https://github.com/benjjneb/dada2) using the script `Spis_Pver_dada2.R`
-2. Quality checks (i.g., removal of putatively contaminant ASVs and removal of samples with < 1000 reads) were done   using the script `Spis_Pver_QC.R`
+2. Quality checks (i.e., removal of putatively contaminant ASVs and removal of samples with < 1000 reads) were done   using the script `Spis_Pver_QC.R`
 3. barplots of most abundant bacterial genera and families were done using the script `Spis_Pver_barplots.R`
 
 ### Beta diversity plotting and stats
