@@ -18,4 +18,4 @@ This directory contains the scripts used to produce figures and run analyses for
 
 ### Alpha diversity plotting and stats
 7. Alpha diversity estimates and statistical comparisons were done using the script `Spis_Pver_alpha.R`
-8. Indicator bacterial ASVs across host population clusters and temperature clusters were identified using the script  `Spis_Pver_indicSpecies.R`
+8. Indicator bacterial ASVs across host population clusters and temperature clusters were identified using [indicSpecies](https://github.com/emf-creaf/indicspecies) with the script  `Spis_Pver_indicSpecies.R`
