@@ -9,10 +9,10 @@ This directory contains the scripts used to produce figures and run analyses for
 
 1. Amplicon Sequence variance (ASV) were inferred using [dada2](https://github.com/benjjneb/dada2) using the script `Spis_Pver_dada2.R`
 2. Quality checks (i.e., removal of putatively contaminant ASVs and removal of samples with < 1000 reads) were done   using the script `Spis_Pver_QC.R`
-3. barplots of most abundant bacterial genera and families were done using the script `Spis_Pver_barplots.R`
+3. barplots of most abundant bacterial genera and families were created using the script `Spis_Pver_barplots.R`
 
 ### Beta diversity plotting and stats
-4. Ordination plots were done using the script `Spis_Pver_ordination.R`
+4. Ordination plots were created using the script `Spis_Pver_ordination.R`
 5. Beta dispersion was evaluated using the script `Spis_Pver_BetaDispersion.R`
 6. PERMANOVAs were done using the script `Spis_Pver_permanova.R`
 
