@@ -1,4 +1,4 @@
-#library(GUniFrac)
+library(GUniFrac)
 library(vegan)
 
 #data in
@@ -15,24 +15,41 @@ temp$temp_category2=ifelse(temp$Temperature >= 27 & temp$Temperature < 28, "cool
 host=read.table("Input_files/new_host_clusters_April2021.txt", header = T, sep = "\t")
 host$INDIVIDUALS=gsub("-", "_", host$INDIVIDUALS)
 asv_filt2=asv[,which(colnames(asv) %in% host$INDIVIDUALS)]
+asv_f=asv_filt2[rowSums( asv_filt2 > 0 ) >= 3,] #  get only ASVs with values in at least 3 samples
+asv_number=nrow(asv_f)
 
-###rarefying
-# cnts=t(asv[,1:asv_number])
-# min(rowSums(cnts)) # determine sample with lowest counts
-# asv.rar=Rarefy(cnts, 1018)$otu.tab.rff
+##rarefying
+cnts=t(asv_f)
+min(rowSums(cnts)) # determine sample with lowest counts
+asv.rar=Rarefy(cnts, 1018)$otu.tab.rff
 
 ###alpha diversity stimates
-alpha=as.data.frame(t(estimateR(t(asv_filt2),  smallsample = TRUE)))
-alpha$Shannon=vegan::diversity(t(asv_filt2), index = "shannon")#$shannon
+alpha=as.data.frame(t(estimateR(asv.rar,  smallsample = TRUE)))
+alpha$Shannon=vegan::diversity(asv.rar, index = "shannon")#$shannon
 alpha$Reef=paste(map$site,map$Reef, sep = "_")[match(rownames(alpha),rownames(map))]
 alpha$Reef=factor(alpha$Reef, levels=c("MAQ_R1","MAQ_R2","WAJ_R1","WAJ_R2","WAJ_R3","WAJ_R4", "YAN_R1","YAN_R3","YAN_R4","KAU_R1","KAU_R2","KAU_R3","DOG_R1" ,"DOG_R2","DOG_R3", "FAR_R1","FAR_R2","FAR_R3","FAR_R4"))
 alpha$Species=ifelse(rownames(alpha) %like% "^S", "Stylophora", "Pocillopora")
 alpha$PopID=host$STRATA[match(rownames(alpha),host$INDIVIDUALS)]
 alpha$Temperature=temp$temp_category2[match(alpha$Reef,temp$Reef)]
 
+# #not rarified
+# alpha=as.data.frame(t(estimateR(t(asv_filt2),  smallsample = TRUE)))
+# alpha$Shannon=vegan::diversity(t(asv_filt2), index = "shannon")#$shannon
+# alpha$Reef=paste(map$site,map$Reef, sep = "_")[match(rownames(alpha),rownames(map))]
+# alpha$Reef=factor(alpha$Reef, levels=c("MAQ_R1","MAQ_R2","WAJ_R1","WAJ_R2","WAJ_R3","WAJ_R4", "YAN_R1","YAN_R3","YAN_R4","KAU_R1","KAU_R2","KAU_R3","DOG_R1" ,"DOG_R2","DOG_R3", "FAR_R1","FAR_R2","FAR_R3","FAR_R4"))
+# alpha$Species=ifelse(rownames(alpha) %like% "^S", "Stylophora", "Pocillopora")
+# alpha$PopID=host$STRATA[match(rownames(alpha),host$INDIVIDUALS)]
+# alpha$Temperature=temp$temp_category2[match(alpha$Reef,temp$Reef)]
+
+alpha %>% group_by(Species,PopID ) %>% tally()
 ##text observed
-#species_pool=ifelse(rownames(t(asv_filt2)) %like% "^S", "Stylophora", "Pocillopora")
-#specpool(t(asv_filt2), species_pool) # Pocillopora 15,577 and Stylophora 23,736
+species_pool=ifelse(rownames(t(asv_filt2)) %like% "^S", "Stylophora", "Pocillopora")
+specpool(t(asv_filt2), species_pool) # Pocillopora 15,577 and Stylophora 23,736
+alpha %>% group_by(Species) %>% dplyr::summarise(Shannon=mean(Shannon))
+
+species_pool=ifelse(rownames(asv.rar) %like% "^S", "Stylophora", "Pocillopora")
+specpool(asv.rar, species_pool) # Chao1 = Pocillopora 3879 and Stylophora 4743
+alpha %>% group_by(Species) %>% dplyr::summarise(Shannon=mean(Shannon))
 
 # colors
 
@@ -45,6 +62,7 @@ P6=c("#222E50", "#007991", "#BCD8C1", "#E9D985", "#F29469", "#BE3F23")
 P4=c("#2E33D1", "#FFEE32","#D37D47", "#F43535")
 P20=c("#fad390", "#f6b93b", "#fa983a", "#e58e26", "#f8c291", "#e55039", "#eb2f06", "#b71540", "#6a89cc", "#4a69bd","#1e3799", "#0c2461", "#82ccdd", "#60a3bc", "#3c6382", "#0a3d62", "#b8e994", "#78e08f", "#38ada9", "#079992", "#C0C0C0")
 
+species_Pal=c("#FFA500", "#C71585")# Pver and Spis
 ##################################################
 ##################### Stats ######################
 ##################################################
@@ -53,11 +71,11 @@ P20=c("#fad390", "#f6b93b", "#fa983a", "#e58e26", "#f8c291", "#e55039", "#eb2f06
 shapiro.test(alpha$Shannon) # p-value < 0.05 implying we can't assume the normality.
 kruskal.test(alpha$Shannon ~ alpha$Species) # Kruskal-Wallis chi-squared = 21.373, df = 1, p-value = 3.781e-06
 pdf("outputs/SpisPver_alphaDiversity_species.pdf", width=4,height=4, pointsize = 10)
-ggplot(alpha, aes(x=Species, y=Shannon, fill=Species)) + 
+all_ASVs=ggplot(alpha, aes(x=Species, y=Shannon, fill=Species)) + 
   stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
-  scale_fill_manual(values=P6) +  theme_classic() + 
-  labs( y= "ASV Shannon diversity", x="", title = "") +
-  annotate(geom="text", x=1.5, y=5.5, label= "Kruskal-Wallis \n p-value = 3.8e-06")
+  scale_fill_manual(values=species_Pal) +  theme_classic() + 
+  labs( y= "Overall ASV Shannon diversity", x="", title = "") +
+  annotate(geom="text", x=1.5, y=5.5, label= "Kruskal-Wallis \n p-value = 1.9e-06")
 dev.off()
 
 # 2. Pver per reef and cluster
@@ -154,3 +172,36 @@ pdf("outputs/alphaDiversity.pdf", width=10,height=8, pointsize = 10)
 (plot_pver_alpha_popID+plot_pver_alpha_temp)/(plot_spis_alpha_popID+plot_spis_alpha_temp) + plot_annotation(tag_levels = 'A') 
 dev.off()
 
+### Endozoicomonas diversity
+
+tax=read.table("Input_files/SpisPver_ASVs_noContanoOut.txt", header = TRUE, row.names = 1)[, 661:665]
+endo=subset(asv_f, rownames(asv_f) %in% rownames(subset(tax, Family == "Endozoicomonadaceae")))
+
+alpha_endo=as.data.frame(t(estimateR(t(endo),  smallsample = TRUE)))
+alpha_endo$Shannon=vegan::diversity(t(endo), index = "shannon")#$shannon
+alpha_endo$Reef=paste(map$site,map$Reef, sep = "_")[match(rownames(alpha_endo),rownames(map))]
+alpha_endo$Reef=factor(alpha_endo$Reef, levels=c("MAQ_R1","MAQ_R2","WAJ_R1","WAJ_R2","WAJ_R3","WAJ_R4", "YAN_R1","YAN_R3","YAN_R4","KAU_R1","KAU_R2","KAU_R3","DOG_R1" ,"DOG_R2","DOG_R3", "FAR_R1","FAR_R2","FAR_R3","FAR_R4"))
+alpha_endo$Species=ifelse(rownames(alpha_endo) %like% "^S", "Stylophora", "Pocillopora")
+alpha_endo$PopID=host$STRATA[match(rownames(alpha_endo),host$INDIVIDUALS)]
+alpha_endo$Temperature=temp$temp_category2[match(alpha_endo$Reef,temp$Reef)]
+
+##text observed
+species_pool=ifelse(rownames(t(endo)) %like% "^S", "Stylophora", "Pocillopora")
+specpool(t(endo), species_pool) # Chao1 = Pocillopora 3879 and Stylophora 4743
+
+alpha_endo %>% group_by(Species) %>% dplyr::summarise(Shannon=mean(Shannon))
+
+## 1 between species
+shapiro.test(alpha_endo$Shannon) # p-value < 0.05 implying we can't assume the normality.
+kruskal.test(alpha_endo$Shannon ~ alpha_endo$Species) # Kruskal-Wallis chi-squared = 21.373, df = 1, p-value = 3.781e-06
+pdf("outputs/SpisPver_Endos_alphaDiversity_species.pdf", width=4,height=4, pointsize = 10)
+Endoz_alpha=ggplot(alpha_endo, aes(x=Species, y=Shannon, fill=Species)) + 
+  stat_boxplot(geom = "errorbar")  + geom_boxplot(alpha = 1) + 
+  scale_fill_manual(values=species_Pal) +  theme_classic() + 
+  labs( y= "Endozoicomonadaceae ASV Shannon diversity", x="", title = "") +
+  annotate(geom="text", x=1.5, y=4, label= "Kruskal-Wallis \n p-value = 2.2e-16")
+dev.off()
+
+pdf("outputs/SpisPver_Endos_alphaDiversity_species.pdf", width=9,height=5, pointsize = 10)
+all_ASVs + Endoz_alpha +  plot_annotation(tag_levels = 'A')
+dev.off()
