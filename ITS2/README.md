@@ -64,3 +64,7 @@ The following files are required as input:
 The PERMANOVAs were also computed using UniFrac-derived between sample distances. The computation of these PERMANOVAs has been commented out in the R script. To run these, the following file must be present:
 
 - `./sp_output/between_sample_distances/A/20201207T095144_unifrac_sample_distances_A_sqrt.dist`
+
+## N.B. Same naming error
+
+Although sample SWAJ-R1-43 underwent ITS2 sequencing, a typo in the submission sheet labelling it as "SWAJ -R1-43" meant that it was accidentally left out of the main analysis.
