@@ -7,6 +7,4 @@ dependencies:
   - python=3
   - matplotlib
   - pandas
-  - pip
-  - pip:
-    - sputils
+  - sputils 
