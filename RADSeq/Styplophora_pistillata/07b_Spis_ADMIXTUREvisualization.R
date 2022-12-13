@@ -64,14 +64,14 @@ spis.strata$REEF <- factor(spis.strata$REEF, levels = c("MAQ-R1", "MAQ-R2", "WAJ
 write.table(spis.strata$REEF, "spis.ind2pop", col.names = F, quote = F, row.names = F)
 
 # id order genetic assignment (sample SKAU-R2-13 was discarded in comparison with previous run)
-# Get the individuals order based on the major cluster in each reef was attained based on run5 K7
-spis.k7.majormode.run5.pong <- read.table("../run_cve_10fold_5/spis.367ind.LE.plink.7.Q")
-colnames(spis.k7.majormode.run5.pong) <- c("SCL1", "SCL2", "SCL3", "SCL4", "SCL5", "SCL6", "SCL7")
-spis.k7.majormode.run5.pong$ind <- spis.strata$INDIVIDUALS
-spis.k7.majormode.run5.pong$reef <- spis.strata$REEF
-spis.k7.majormode.run5.pong$reef <- factor(spis.k7.majormode.run5.pong$reef, levels = c("MAQ-R1", "MAQ-R2", "WAJ-R1", "WAJ-R3", "WAJ-R4", "YAN-R1", "YAN-R3", "YAN-R4", "KAU-R1", "KAU-R2", "KAU-R3", "DOG-R1", "DOG-R2", "DOG-R3", "FAR-R1", "FAR-R2", "FAR-R3", "FAR-R4"), ordered = T)
+# Get the individuals order based on the major cluster in each reef was attained based on run9 K6
+spis.k6.majormode.run9.pong <- read.table("../run_cve_10fold_9/spis.367ind.LE.plink.6.Q")
+colnames(spis.k6.majormode.run9.pong) <- c("SCL1", "SCL2", "SCL3", "SCL4", "SCL5", "SCL6")
+spis.k6.majormode.run9.pong$ind <- spis.strata$INDIVIDUALS
+spis.k6.majormode.run9.pong$reef <- spis.strata$REEF
+spis.k6.majormode.run9.pong$reef <- factor(spis.k6.majormode.run9.pong$reef, levels = c("MAQ-R1", "MAQ-R2", "WAJ-R1", "WAJ-R3", "WAJ-R4", "YAN-R1", "YAN-R3", "YAN-R4", "KAU-R1", "KAU-R2", "KAU-R3", "DOG-R1", "DOG-R2", "DOG-R3", "FAR-R1", "FAR-R2", "FAR-R3", "FAR-R4"), ordered = T)
 
-reefs <- split(spis.k7.majormode.run5.pong, spis.k7.majormode.run5.pong$reef) # split Q matrix based on reef levels
+reefs <- split(spis.k6.majormode.run9.pong, spis.k6.majormode.run9.pong$reef) # split Q matrix based on reef levels
 str(reefs)
 
 # Generate the vector of individuals in the most appropriate order
@@ -110,7 +110,7 @@ write.table(spis.id.ordered , "spis.ind.ordered.byclusters.txt", quote = F, row.
 
 # Get the ancestry proportion matrices in the right order (runs CV10)
 runs <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
-k.adm <- c(2,3,4,5,6,7,8,9,10, 11, 12)
+k.adm <- c(2,3,4,5,6,7,8,9,10, 11, 12,13,14,15,16,17)
 for(run in runs){
   for(k in k.adm){
     s.k.cv10.r<- read.table(paste("../run_cve_10fold_",run,"/spis.367ind.LE.plink.",k,".Q", sep = ""), h=F)
@@ -131,26 +131,26 @@ system("python run_pong.py -m spis.filemap.cv10 -i spis.ind2pop -n spis.poporder
 system("python run_pong.py -m spis.filemap.run9.cv10 -i spis.ind2pop -n spis.poporder -l color.list.k2.k6.cv10.run9 --dist_metric jaccard -v -s 0.95") # plotting only run1 (only K2 to K6)
 
 ######
-# Figuring out the best order of the samples checking at run5 K7
-spis.k7.majormode.run5.ordered.pong <- read.table("spis.allmarkers.cv10.r5.indordered.7.Q")
-spis.k7.majormode.run5.ordered.pong$ind <- spis.id.ordered
-spis.k7.majormode.run5.ordered.pong$reef <- gsub("S","", sub('^([^-]+-[^-]+).*', '\\1', spis.k7.majormode.run5.ordered.pong$ind))
-spis.k7.majormode.run5.ordered.pong$reef <- factor(spis.k7.majormode.run5.ordered.pong$reef, levels = c("MAQ-R1", "MAQ-R2", "WAJ-R1", "WAJ-R3", "WAJ-R4", "YAN-R1", "YAN-R3", "YAN-R4", "KAU-R1", "KAU-R2", "KAU-R3", "DOG-R1", "DOG-R2", "DOG-R3", "FAR-R1", "FAR-R2", "FAR-R3", "FAR-R4"), ordered = T)
+# Figuring out the best order of the samples checking at run9 K6
+spis.k6.majormode.run9.ordered.pong <- read.table("spis.allmarkers.cv10.r5.indordered.7.Q")
+spis.k6.majormode.run9.ordered.pong$ind <- spis.id.ordered
+spis.k6.majormode.run9.ordered.pong$reef <- gsub("S","", sub('^([^-]+-[^-]+).*', '\\1', spis.k7.majormode.run5.ordered.pong$ind))
+spis.k6.majormode.run9.ordered.pong$reef <- factor(spis.k6.majormode.run9.ordered.pong$reef, levels = c("MAQ-R1", "MAQ-R2", "WAJ-R1", "WAJ-R3", "WAJ-R4", "YAN-R1", "YAN-R3", "YAN-R4", "KAU-R1", "KAU-R2", "KAU-R3", "DOG-R1", "DOG-R2", "DOG-R3", "FAR-R1", "FAR-R2", "FAR-R3", "FAR-R4"), ordered = T)
 
-colnames(spis.k7.majormode.run5.ordered.pong) <- c("CL1", "CL2", "CL3", "CL4", "CL5", "CL6", "CL7", "ind", "reef")
+colnames(spis.k6.majormode.run9.ordered.pong) <- c("SCL1", "SCL2", "SCL3", "SCL4", "SCL5", "SCL6", "ind", "reef")
 
 # I will use the same color pallete used in pong
-spis.clust.colors <- c("#FE92CD", "#C71585", "#32CD32", "#FFD700", "#1E90FF" , "#FF4500","#FD9202")
+spis.clust.colors <- c("#FE92CD", "#C71585", "#32CD32", "#FFD700", "#1E90FF" , "#FF4500")#,"#FD9202")
 #check.colors.pong <- c("#FE92CD", "#C71585", "#32CD32", "#FFD700", "#1E90FF" , "#FF4500","#FD9202", "#11E8F2","#FFFAF0","#7B68EE","#000000", "#67BDF9")
 show_col(spis.clust.colors)
 
 # Change the table format from wide to long
 library(reshape2)
-spis.k7 <- melt(spis.k7.majormode.run5.ordered.pong, id.vars=c("ind", "reef"))
-spis.k7$reef <- factor(spis.k7$reef, levels=c("MAQ-R1", "MAQ-R2", "WAJ-R1", "WAJ-R3", "WAJ-R4", "YAN-R1", "YAN-R3", "YAN-R4", "KAU-R1", "KAU-R2", "KAU-R3", "DOG-R1", "DOG-R2", "DOG-R3", "FAR-R1", "FAR-R2", "FAR-R3", "FAR-R4"), ordered = T)
-spis.k7$ind <- factor(spis.k7$ind, levels = spis.id.ordered, ordered= T)
+spis.k6 <- melt(spis.k6.majormode.run5.ordered.pong, id.vars=c("ind", "reef"))
+spis.k6$reef <- factor(spis.k6$reef, levels=c("MAQ-R1", "MAQ-R2", "WAJ-R1", "WAJ-R3", "WAJ-R4", "YAN-R1", "YAN-R3", "YAN-R4", "KAU-R1", "KAU-R2", "KAU-R3", "DOG-R1", "DOG-R2", "DOG-R3", "FAR-R1", "FAR-R2", "FAR-R3", "FAR-R4"), ordered = T)
+spis.k6$ind <- factor(spis.k6$ind, levels = spis.id.ordered, ordered= T)
 
-k7 <- ggplot(spis.k7, aes(fill=variable, y=value,x=ind))+
+k6 <- ggplot(spis.k6, aes(fill=variable, y=value,x=ind))+
   #geom_bar(stat="identity", position="fill", colour="grey33", size=0.0001, width = 1) + # size controls the thickness of the outline of each bar #geom_col can also be used as a command to plot a stacked bar chart
   geom_bar(stat="identity", position="fill", size=0, width = 1) + # size controls the thickness of the outline of each bar #geom_col can also be used as a command to plot a stacked bar chart
   facet_grid (~reef, scales = "free", space = "free_x") + #codigo para introducir los grupos. dependiendo de si .~ esta antes o despues del factor la figura es vertical u horizontal
@@ -176,8 +176,8 @@ k7 <- ggplot(spis.k7, aes(fill=variable, y=value,x=ind))+
   scale_fill_manual(values=spis.clust.colors,
                     name= "Clusters\nADMIXTURE")+ #codigo para utilizar una escala de colores personalizada
   guides(fill=guide_legend(ncol=1, keywidth = 0.5, keyheight = 0.5)) # to reduce the size of the legen key
-k7
-ggsave(filename = "TEST_k7.majormoderun5pong.pdf", plot = k7, width = 70, height = 7,  units = "cm")
+k6
+ggsave(filename = "TEST_k6.majormoderun9pong.pdf", plot = k7, width = 70, height = 7,  units = "cm")
 
 
 ####  07b.03  Visualization of the genetic divergence between ancestral populations 
